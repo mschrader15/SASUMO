@@ -2,7 +2,8 @@ import os
 import sys
 import ray
 import uuid
-import subprocess
+# import subprocess
+from sumolib.vehicle import CreateVehTypeDistribution, VehAttribute
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
@@ -21,13 +22,11 @@ def _stringify_list(_l: list) -> str:
     ", ".join(map(_l, float))
 
 
-
 @ray.remote
-class BaseSUMOFunc(ABCMeta):
+class BaseSUMOFunc:
     def __init__(self, params: Parameters, *args, **kwargs):
         self._params = deepcopy(params)
         self._folder = self.create_folder()
-        
 
     def _dump_parameters(self, ):
         self._params.save(self._folder)
@@ -35,18 +34,19 @@ class BaseSUMOFunc(ABCMeta):
     def run(self, *args, **kwargs):
         # dump the parameters at run time
         self._dump_parameters()
-        
+
         # then call the inner run function
         self._run(*args, **kwargs)
-    
+
     def _run(self, ):
         pass
 
     def create_folder(self, ) -> str:
-        folder = os.path.join(self._params['working_folder'], "-".join([str(datetime.now()).replace(":", "-"), uuid.uuid4().hex]))    
+        folder = os.path.join(self._params['working_folder'], "-".join(
+            [str(datetime.now()).replace(":", "-"), uuid.uuid4().hex]))
         os.makedirs(folder, exist_ok=True)
         return folder
-        
+
     @property
     def output(self, ) -> float:
         return self._output()
@@ -56,32 +56,26 @@ class BaseSUMOFunc(ABCMeta):
 
     def create_veh_defintion(self, ) -> None:
         """Call SUMO's https://github.com/eclipse/sumo/blob/master/tools/createVehTypeDistribution.py here"""
-        self._params.veh_dist_location = os.path.join(self._folder, self._params.VEH_DIST_NAME + ".in.xml")  
+        # self._params.veh_dist_location = os.path.join(self._folder, self._params.VEH_DIST_NAME + ".in.xml")
 
-        
-        """
-        Creating the text input file
-        """
-        tmp_dist_input_file = os.path.join(self._folder, self._params.VEH_DIST_NAME + "_temp.txt")
-        with open(tmp_dist_input_file, 'w') as f:
-            """
-            Create a list of rows to write to the text file
-            """ 
-            for paramter, value in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS.items():
-                f.write('; '.join([paramter, ] + value if isinstance(value, list) else [value]))
-        
+        creator = CreateVehTypeDistribution(
+            seed=self._params.SEED, name=self._params.VEH_DIST_NAME, size=self._params.VEHICLE_DIST_SIZE
+        )
 
-        """
-        Call the createVehTypeDistribution.py
-        """
-        subprocess.run([])
+        for param in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:
+            creator.add_attribute(param)
+
+        creator.write_dist(file_path=self._params.VEH_DIST_SAVE_PATH)
+        
+        creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
+
 
 
 
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def __init__(self, params, *args, **kwargs):
-        
+
         from SASUMO.SASUMO.output import TotalEmissionsHandler
 
         super().__init__(params, *args, **kwargs)
@@ -89,7 +83,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def _output(self):
         return self._output_handler.y
-    
+
     def run(self, ):
         """
         This is the main function. It: 
