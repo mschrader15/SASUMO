@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Any, Hashable, Union
 import json
+from dataclasses import dataclass
 
 
 def _remover(d: dict, p: Hashable, default=None) -> Any:
@@ -48,12 +49,27 @@ class _FlexibleDict:
         return self.__dict__.items()
 
 
-class CarFollowingParameters:
+class _Sampleable:
+
+        def __init__(self, max: Any, min: Any) -> None:
+            self.max = max
+            self.min = min
+            
+        def 
+
+
+class _VehAttributes:
     
     def __init__(self, parameter_dict):
-        
+
         self.MODEL: str = _remover(parameter_dict, 'name') if parameter_dict else None
         self.PARAMETERS: dict = _remover(parameter_dict, 'model-parameters') if parameter_dict else None
+
+class _VehDist:
+
+    def __init__(self) -> None:
+        
+        self.PARAMETERS = _VehAttributes()
 
 
 class Parameters(_FlexibleDict):

@@ -1,0 +1,22 @@
+{
+    "name": "test",
+    "SAAnalysis": {
+        "variables": {
+            "FleetComposition": {
+                "variable_name": "percent_truck",
+                "distribution": [
+                    0,
+                    0.5
+                ]
+            },
+            "CarFollowingParameters": {
+                ""
+            }
+        }
+    },
+    "simulation": {
+        "simulation_function": "from runners import NoTraciSimulation",
+        "settings_function": "from tools.settings import Settings",
+        
+    }
+}

@@ -1,9 +1,11 @@
 import os
 import sys
+
+from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
 import ray
 import uuid
 # import subprocess
-from sumolib.vehicle import CreateVehTypeDistribution, VehAttribute
+from sumolib.vehicle import CreateMultiVehTypeDistributions 
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
@@ -58,14 +60,13 @@ class BaseSUMOFunc:
         """Call SUMO's https://github.com/eclipse/sumo/blob/master/tools/createVehTypeDistribution.py here"""
         # self._params.veh_dist_location = os.path.join(self._folder, self._params.VEH_DIST_NAME + ".in.xml")
 
-        creator = CreateVehTypeDistribution(
-            seed=self._params.SEED, name=self._params.VEH_DIST_NAME, size=self._params.VEHICLE_DIST_SIZE
-        )
+        creator = CreateMultiVehTypeDistributions()
 
         for param in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:
-            creator.add_attribute(param)
 
-        creator.write_dist(file_path=self._params.VEH_DIST_SAVE_PATH)
+            creator.register_veh_type_distribution(veh_type_dist=CreateVehTypeDistribution(**param), )
+
+        creator.to_xml(file_path=self._params.VEH_DIST_SAVE_PATH)
         
         creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
