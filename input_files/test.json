@@ -1,22 +1,63 @@
 {
-    "name": "test",
-    "SAAnalysis": {
-        "variables": {
-            "FleetComposition": {
-                "variable_name": "percent_truck",
-                "distribution": [
-                    0,
-                    0.5
-                ]
-            },
-            "CarFollowingParameters": {
-                ""
-            }
+  "name": "test",
+  "SAAnalysis": {
+    "variables": {
+      "FleetComposition": {
+        "variable_name": "percent_truck",
+        "generator": {
+          "function": "functions.fleet_composition", // points to the python function inside of SASUMO that creates SUMO input
+          "arguments": "distribution" // the name of dictionary item that is passed to the function above
+        },
+        "distribution": {
+          "type": "uniform",
+          "params": {
+            "min": 0,
+            "max": 0.5
+          }
         }
-    },
-    "simulation": {
-        "simulation_function": "from runners import NoTraciSimulation",
-        "settings_function": "from tools.settings import Settings",
-        
+      },
+      "CarFollowingParameters": {
+        "generator": {
+          "function": "function.create_veh_dist",
+          "arguments": "distribution_variables"
+        },
+        "distribution_variables": [
+          {
+            "variable_name": "tau", // These should be the names of SUMO carFollowingModel Parameters
+            "distribution": {
+              "type": "uniform",
+              "params": {
+                "min": 0.1,
+                "max": 3
+              }
+            }
+          },
+          {
+            "variable_name": "delta",
+            "distribution": {
+              "type": "uniform",
+              "params": {
+                "min": 0.1,
+                "max": 10
+              }
+            }
+          },
+          {
+            "variable_name": "accel",
+            "distribution": {
+              "type": "uniform",
+              "params": {
+                "min": 0.5,
+                "max": 4
+              }
+            }
+          }
+        ]
+      }
     }
+  },
+  "simulation": {
+    "simulation_function": "from runners import NoTraciSimulation",
+    "settings_function": "from tools.settings import Settings"
+  }
 }
