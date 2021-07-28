@@ -2,7 +2,9 @@ metadata:
   name: test
 
 SensitivityAnalysis:
+
   variables: 
+
     FleetComposition:
       variable_name: percent_truck
       distribution: &distribution
@@ -62,6 +64,25 @@ SensitivityAnalysis:
         function: functions.create_vehicle_distribution
         arguments:
           - *PersonalCar
-          - *
+          - *Class8Truck
       
-        
+    ModelFidelity:
+      variable_name: model_fidelelity
+      distribution:
+        type: uniform sample
+        params:
+          list: 
+            - phemlight
+            - matlab
+  
+  output:
+
+    
+
+SimulationCore:
+
+  # This should point to the "f(variables)" function
+
+  function: runners.
+
+
