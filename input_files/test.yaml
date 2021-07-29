@@ -3,8 +3,7 @@ metadata:
 
 SensitivityAnalysis:
 
-  variables: 
-
+  variables: &sa_variables
     FleetComposition:
       variable_name: percent_truck
       distribution: &distribution
@@ -75,14 +74,18 @@ SensitivityAnalysis:
             - phemlight
             - matlab
   
-  output:
-
+  output: *sa_variables
     
 
 SimulationCore:
 
   # This should point to the "f(variables)" function
+  function: runners.sa_dispatcher
+  arguments: 
+    *sa_variables
+    
 
-  function: runners.
+
+
 
 
