@@ -1,6 +1,4 @@
-import numpy as np
 from abc import ABCMeta
-import multiprocess
 from utils import on_disk_xml_parser 
 
 
@@ -36,5 +34,3 @@ class TotalEmissionsHandler(_OutputHandler):
                 float(row['fuel']) * sim_step for row in self.load_xml() 
                 if lower_time_b < row['time'] < upper_time_b  
             ])
-    
-    

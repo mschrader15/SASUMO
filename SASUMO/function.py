@@ -1,11 +1,14 @@
 import os
+import subprocess
 import sys
-
 from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
+
 import ray
 import uuid
+
 # import subprocess
 from sumolib.vehicle import CreateMultiVehTypeDistributions 
+
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
@@ -56,21 +59,42 @@ class BaseSUMOFunc:
     def _output(self, ) -> float:
         pass
 
-    def create_veh_defintion(self, ) -> None:
-        """Call SUMO's https://github.com/eclipse/sumo/blob/master/tools/createVehTypeDistribution.py here"""
-        # self._params.veh_dist_location = os.path.join(self._folder, self._params.VEH_DIST_NAME + ".in.xml")
+    # def create_veh_defintion(self, ) -> None:
+    #     """Call SUMO's https://github.com/eclipse/sumo/blob/master/tools/createVehTypeDistribution.py here"""
+    #     # self._params.veh_dist_location = os.path.join(self._folder, self._params.VEH_DIST_NAME + ".in.xml")
 
-        creator = CreateMultiVehTypeDistributions()
+    #     creator = CreateMultiVehTypeDistributions()
 
-        for param in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:
+    #     for param in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:
+            
+            
+    #         creator.register_veh_type_distribution(veh_type_dist=CreateVehTypeDistribution(**param), )
 
-            creator.register_veh_type_distribution(veh_type_dist=CreateVehTypeDistribution(**param), )
-
-        creator.to_xml(file_path=self._params.VEH_DIST_SAVE_PATH)
+    #     creator.to_xml(file_path=self._params.VEH_DIST_SAVE_PATH)
         
-        creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
+    #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
+    def create_veh_distribution(self, ) -> None:
+        """
+        Creating the text input file
+        """
+        
+        tmp_dist_input_file = os.path.join(self._folder, self._params.VEH_DIST_NAME + "_temp.txt")
+        
+        for vehType in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:   
+        
+            with open(tmp_dist_input_file, 'w') as f:
+                """
+                Create a list of rows to write to the text file
+                """ 
+                for paramter, value in vehType:
+                    f.write('; '.join([paramter, ] + value if isinstance(value, list) else [value]))
 
+            subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py", tmp_dist_input_file, 
+            '--name', vehType.NAME, '-o', self._params.])
+
+        os.remove(tmp_dist_input_file)
+    # def prior_veh_dist()
 
 
 class EmissionsSUMOFunc(BaseSUMOFunc):
