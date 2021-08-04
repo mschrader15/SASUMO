@@ -3,32 +3,6 @@ from lxml import etree
 from xml.dom import minidom
 
 
-# FIELD_NAMES = {
-#     'emissions': [
-#         'timestep_time', 'vehicle_CO', 'vehicle_CO2', 'vehicle_HC',
-#         'vehicle_NOx', 'vehicle_PMx', 'vehicle_angle', 'vehicle_eclass',
-#         'vehicle_electricity', 'vehicle_fuel', 'vehicle_id', 'vehicle_lane',
-#         'vehicle_noise', 'vehicle_pos', 'vehicle_route', 'vehicle_speed',
-#         'vehicle_type', 'vehicle_waiting', 'vehicle_x', 'vehicle_y'
-#     ],
-#     'e1': [
-#         'interval_begin', 'interval_end', 'interval_flow',
-#         'interval_harmonicMeanSpeed', 'interval_id', 'interval_length',
-#         'interval_nVehContrib', 'interval_nVehEntered', 'interval_occupancy'
-#     ],
-#     'e2': [
-#         'interval_begin',
-#         'interval_end',
-#         'interval_id',
-#         'interval_sampledSeconds',
-#         'interval_nVehEntered',
-#         'interval_nVehLeft',
-#         'interval_nVehSeen',
-#         'interval_meanSpeed',
-#     ]
-# }
-
-
 def parse_and_write_emissions(elem, metadata):
     if (elem.tag in 'timestep') and (len(elem.attrib) > 0):
         meta_data = elem.attrib['time']
@@ -80,9 +54,6 @@ def on_disk_xml_parser(xml_path: str, file_type: str) -> list:
                       parse_function=PARSE_FUNCTION[file_type]).process()
 
 
-
-
-
 class RouteDistComber:
     
     
@@ -113,18 +84,18 @@ class RouteDistComber:
                 self._replace_veh_type(node, )
 
         with open(self._r if not output_path else output_path, 'w') as f:
-            f.write(t.toxml())
+                f.write(t.toxml())
     
     def _replace_veh_type(self, element: minidom.Element) -> None:
         if element.hasAttribute("type"):
             element.setAttribute("type", self._sample()) 
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    r = RouteDistComber({'truck': 0.7, 'car': 0.3}, seed=22, route_file_path='/home/max/SUMO/airport-harper-sumo/sumo-xml/route-sampler/route_sampler.route.xml')
+    # r = RouteDistComber({'truck': 0.7, 'car': 0.3}, seed=22, route_file_path='/home/max/SUMO/airport-harper-sumo/sumo-xml/route-sampler/route_sampler.route.xml')
 
-    r.replace_vehType()
+    # r.replace_vehType()
 
 
         # for row in on_disk_xml_parser(xml_path="/home/max/SUMO/airport-harper-sumo/sumo-xml/emissions/emissions.out.xml", file_type='emissions'):

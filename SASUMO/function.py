@@ -81,7 +81,7 @@ class BaseSUMOFunc:
         
         tmp_dist_input_file = os.path.join(self._folder, self._params.VEH_DIST_NAME + "_temp.txt")
         
-        for vehType in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:   
+        for _, vehType in self._params.VEH_DIST.PARAMETERS.items():   
         
             with open(tmp_dist_input_file, 'w') as f:
                 """
@@ -91,9 +91,14 @@ class BaseSUMOFunc:
                     f.write('; '.join([paramter, ] + value if isinstance(value, list) else [value]))
 
             subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py", tmp_dist_input_file, 
-            '--name', vehType.NAME, '-o', self._params.])
+                             '--name', vehType.NAME, '-o', self._params.VEH_DIST_FILE, '--size', vehType.SIZE])
 
         os.remove(tmp_dist_input_file)
+
+    
+    def 
+
+
     # def prior_veh_dist()
 
 

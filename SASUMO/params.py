@@ -3,6 +3,7 @@ from copy import deepcopy
 from typing import Any, Dict, Hashable, Union
 import json
 import yaml
+import pendulum
 from dataclasses import dataclass
 
 
@@ -17,6 +18,7 @@ class _FlexibleDict:
     def __init__(
         self,
     ) -> None:
+
         super(_FlexibleDict, self).__init__()
 
     def compose(self, _dict: dict) -> object:
@@ -51,15 +53,6 @@ class _FlexibleDict:
         return self.__dict__.items()
 
 
-# class _Sampleable:
-
-#         def __init__(self, max: Any, min: Any) -> None:
-#             self.max = max
-#             self.min = min
-            
-#         def 
-
-
 class _VehAttributes:
     
     def __init__(self, parameter_dict):
@@ -69,6 +62,16 @@ class _VehAttributes:
         self.SIZE: int = _remover(parameter_dict, 'size', default=100)
         self.DECIMAL_PLACES: int = _remover(parameter_dict, 'size', default=3)
         self.SEED: int = _remover(parameter_dict, 'size', default=3)
+        self._comp: float = 0
+
+    @property
+    def composition(self, ):
+        return self._comp
+    
+    @composition.setter
+    def composition(self, arg):
+        self._comp = arg 
+    
 
 
 class _VehDist:
@@ -76,15 +79,20 @@ class _VehDist:
     def __init__(self, parameters: dict) -> None:
 
         
-        self.PARAMETERS: Dict[str: _VehAttributes] = {key: _VehAttributes(value) for key, value in parameters.items()}
+        self.VEH_DISTS: Dict[str, _VehAttributes] = {key: _VehAttributes(value) for key, value in parameters.items()}
 
         """ Handling the Fleet Composition """
-        max_count = max([(name, veh_attr.SIZE) for name, veh_attr in self.PARAMETERS.items()], key=lambda item:item[1])
+        max_count = max([(name, veh_attr.SIZE) for name, veh_attr in self.VEH_DISTS.items()], key=lambda item:item[1])
         lower_num = int(max_count[0] * (1 / 100) * parameters['fleet_composition'])
-        
         max_count = lower_num * 
-        
 
+    @property
+    def composition(self, ) -> Dict[str, float]:
+        return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()} 
+
+    @composition.setter
+    def composition(self, arg):
+        
 
 class Parameters(_FlexibleDict):
 
@@ -96,12 +104,12 @@ class Parameters(_FlexibleDict):
         self.SEED = 22   # TODO: figure out where the random seed is set 
 
         params = self._load_json(parameter_json)
-
-        self.VEH_DIST = _VehDist(_remover(params, 'car-following-parameters'))
         
         """ Vehicle Distribution Parameters"""
+        self.VEH_DIST = _VehDist(_remover(params, 'car-following-parameters'))
         self.VEH_DIST_NAME = _remover(params, 'veh_dist')
-        self.veh_dist_location: str = None
+        self.VEH_DIST_FILE: str = None
+
 
     @staticmethod
     def _load(input_object: Union[str, dict]) -> dict:
@@ -109,7 +117,6 @@ class Parameters(_FlexibleDict):
             return input_object
         with open(input_object, "rb") as f:
             return json.load(f) if 'json' in os.path.splitext(input_object)[1] else yaml.load(f)
-
 
 
     def save(self, location: str):
