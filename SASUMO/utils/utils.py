@@ -54,7 +54,7 @@ def on_disk_xml_parser(xml_path: str, file_type: str) -> list:
                       parse_function=PARSE_FUNCTION[file_type]).process()
 
 
-class RouteDistComber:
+class FleetComposition:
     
     
 

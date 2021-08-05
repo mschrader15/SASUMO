@@ -1,10 +1,21 @@
+import sys
 import os
-from copy import deepcopy
+# from copy import deepcopy
 from typing import Any, Dict, Hashable, Union
 import json
 import yaml
 import pendulum
-from dataclasses import dataclass
+# from dataclasses import dataclass
+import logging
+
+
+""" Call this once to error out before SUMO runs"""
+# MAKING SURE THAT SUMO_HOME IS IN THE PATH
+if "SUMO_HOME" in os.environ:
+    SUMO_HOME = os.path.join(os.environ["SUMO_HOME"])
+    sys.path.append(SUMO_HOME)
+else:
+    sys.exit("please declare environmental variable 'SUMO_HOME'")
 
 
 def _remover(d: dict, p: Hashable, default=None) -> Any:
@@ -54,11 +65,11 @@ class _FlexibleDict:
 
 
 class _VehAttributes:
-    
+
     def __init__(self, parameter_dict):
 
         self.NAME: str = _remover(parameter_dict, 'name')
-        self.PARAMETERS: dict = _remover(parameter_dict, 'model-parameters') 
+        self.PARAMETERS: dict = _remover(parameter_dict, 'model-parameters')
         self.SIZE: int = _remover(parameter_dict, 'size', default=100)
         self.DECIMAL_PLACES: int = _remover(parameter_dict, 'size', default=3)
         self.SEED: int = _remover(parameter_dict, 'size', default=3)
@@ -67,49 +78,80 @@ class _VehAttributes:
     @property
     def composition(self, ):
         return self._comp
-    
+
     @composition.setter
     def composition(self, arg):
-        self._comp = arg 
-    
+        self._comp = arg
 
 
 class _VehDist:
 
     def __init__(self, parameters: dict) -> None:
 
-        
-        self.VEH_DISTS: Dict[str, _VehAttributes] = {key: _VehAttributes(value) for key, value in parameters.items()}
+        self.VEH_DISTS: Dict[str, _VehAttributes] = {
+            key: _VehAttributes(value) for key, value in parameters.items()}
 
         """ Handling the Fleet Composition """
-        max_count = max([(name, veh_attr.SIZE) for name, veh_attr in self.VEH_DISTS.items()], key=lambda item:item[1])
-        lower_num = int(max_count[0] * (1 / 100) * parameters['fleet_composition'])
-        max_count = lower_num * 
+        for distr_name, percent in parameters['fleet-composition']:
+            self.VEH_DISTS[distr_name].composition = percent
 
     @property
     def composition(self, ) -> Dict[str, float]:
-        return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()} 
+        return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()}
 
-    @composition.setter
-    def composition(self, arg):
-        
 
-class Parameters(_FlexibleDict):
+class ProcessParameters(_FlexibleDict):
 
-    def __init__(self, parameter_json) -> None:
+    """
+    ProcessParameters is the "organizational class" for an individual simulation process
+
+    The "parameter_json" passed to this class should include the simulation specifics
+
+    It allows for logging and will save itself and the parameters inside of it to the "working folder"
+    """
+
+    def __init__(self, parameter_json: Union[str, dict], working_folder: os.PathLike, seed: int) -> None:
+        """ Handle creating the logger and the folder location """
+        self.WORKING_FOLDER = working_folder
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)
+        self._create_log()
 
         """ Store the location of SUMO """
-        self.SUMO_HOME = os.environ('SUMO_HOME')
-        
-        self.SEED = 22   # TODO: figure out where the random seed is set 
-
+        self.SUMO_HOME = SUMO_HOME
+        self.SEED = seed   # TODO: figure out where the random seed is set
         params = self._load_json(parameter_json)
-        
+
         """ Vehicle Distribution Parameters"""
         self.VEH_DIST = _VehDist(_remover(params, 'car-following-parameters'))
-        self.VEH_DIST_NAME = _remover(params, 'veh_dist')
-        self.VEH_DIST_FILE: str = None
 
+        """ Pass the rest of the parameters to myself. This isn't friendly for linter, 
+        but is ultimately friendly for saving state
+        """
+        self.compose(params)
+
+    def _create_log(self, ) -> None:
+        fh = logging.FileHandler(os.path.join(
+            self.WORKING_FOLDER, 'simulation.log'))
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+
+    def create_working_path(self, path: str, ) -> os.PathLike:
+        return os.path.join(self.WORKING_FOLDER, os.path.split(path)[-1])
+
+    def set_var_inline(self, var: Any, value: Any):
+        self[var] = value
+        try:
+            self.log_info(f"Setting variable: {var} to {value}")
+        except TypeError:
+            self.log_info(f"Setting variable: {var} to value that can't be converted to string")
+        return value
+
+    def log_info(self, message) -> None:
+        self.logger.info(message)
 
     @staticmethod
     def _load(input_object: Union[str, dict]) -> dict:
@@ -117,7 +159,6 @@ class Parameters(_FlexibleDict):
             return input_object
         with open(input_object, "rb") as f:
             return json.load(f) if 'json' in os.path.splitext(input_object)[1] else yaml.load(f)
-
 
     def save(self, location: str):
         """
@@ -129,11 +170,11 @@ class Parameters(_FlexibleDict):
         with open(location, "w") as f:
             f.write(
                 json.dumps(
-                    {val: self[val] for val in dir(self) if "__" not in val[:2]},
-                    default=lambda o: o.__dict__ if not isinstance(o, pendulum.DateTime) else str(o),
+                    {val: self[val]
+                        for val in dir(self) if "__" not in val[:2]},
+                    default=lambda o: o.__dict__ if not isinstance(
+                        o, pendulum.DateTime) else str(o),
                     sort_keys=True,
                     indent=4,
                 )
             )
-
-    

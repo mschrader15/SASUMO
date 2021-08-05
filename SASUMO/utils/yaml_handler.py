@@ -1,0 +1,132 @@
+from SASUMO.SASUMO import sensitivity_analysis
+from typing import Any, List, Tuple, Union
+import yaml
+from dataclasses import dataclass
+
+@dataclass
+class _UniformDist:
+    min: float
+    max: float
+    # categorical: tuple = ()
+
+@dataclass
+class _UniformSample:
+    categorical: list
+
+@dataclass
+class _DistributionSettings:
+    
+    type: str
+    params: Union[_UniformDist, _UniformSample]
+
+    @property
+    def params(self, ) -> Union[_UniformDist, _UniformSample]:
+        return self._params
+
+    @params.setter
+    def params(self, kwargs) -> None:
+        self._params = {
+            'uniform sample': _UniformSample,
+            'uniform': _UniformDist
+        }[self.type](**kwargs)
+
+
+@dataclass
+class _Generator:
+
+    function: str
+    arguments: Tuple
+
+
+class _SensitivityAnalysisVariable:
+
+    def __init__(self, variable_name, distribution, generator=None) -> None:
+        self.name: str = variable_name
+        self.distribution: _DistributionSettings = _DistributionSettings(type=distribution['type'], params=distribution['params'])
+        self.generator: Union[_Generator, None] = _Generator(**generator) if generator else None
+
+    # def _type_helper()
+
+@dataclass
+class _SensitivityAnalysisOutput:
+    module: str
+
+class _SensitivityAnalysisSettings:
+
+    def __init__(self, d: dict) -> None:
+        self.variables: List[_SensitivityAnalysisVariable] = self._compose_variables(d['variables'])
+        self.names: str = [v.name for v in self.variables]
+        self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(**d['Output']) 
+        
+    def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
+        for _, variable_d in d.items():
+            if isinstance(variable_d, dict):
+                if 'variable_name' in variable_d.keys():
+                    l.append(_SensitivityAnalysisVariable(**variable_d))
+                else:
+                    self._compose_variables(variable_d, l)
+        return l
+    
+    @property
+    def variable_num(self, ) -> int:
+        return len(self.variables)
+# @dataclass
+
+@dataclass
+class _Settings:
+
+    @property
+    def metadata(self, ) -> object:
+        return self._metadata
+    
+    @metadata.setter
+    def metadata(self, d: dict) -> None:
+        self._metadata = d 
+    
+    @property
+    def sensitivity_analysis(self, ) -> dict:
+        return self._sensitivity_analysis
+
+    @sensitivity_analysis.setter
+    def sensitivity_analysis(self,  d: dict) -> dict:
+        self._sensitivity_analysis =_SensitivityAnalysisSettings(d)
+
+    @property
+    def simulation_core(self, ) -> dict:
+        return self._simulation_core
+
+    @simulation_core.setter
+    def simulation_core(self,  d: dict) -> dict:
+        self._simulation_core = d
+    
+    @property
+    def file_manager(self, ) -> dict:
+        return self._simulation_core
+
+    @file_manager.setter
+    def file_manager(self,  d: dict) -> dict:
+        self._file_manager = d
+    
+
+class Settings4SASUMO(_Settings):
+
+    def __init__(self, file_path: str) -> None:
+        
+        with open(file_path, 'r') as f:
+            self._unpack_settings(yaml.safe_load(f))
+
+    # def __getattribute__(self, name: str) -> Any:
+    #     return self._settings[name]
+        
+    def _unpack_settings(self, d):
+        self.metadata = d['Metadata']
+        self.sensitivity_analysis = d['SensitivityAnalysis']
+        self.simulation_core = d['SimulationCore']
+
+
+# if __name__ == "__main__":
+    
+#     import os
+#     ROOT = os.path.dirname(os.path.abspath(__file__))
+#     s = Settings4SASUMO(os.path.join(ROOT, '../../', 'input_files', 'test.yaml'))
+#     print(s.simulation_core)

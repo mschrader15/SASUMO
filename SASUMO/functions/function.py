@@ -1,26 +1,19 @@
 import os
 import subprocess
 import sys
-from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
+# from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
 
 import ray
 import uuid
 
 # import subprocess
-from sumolib.vehicle import CreateMultiVehTypeDistributions 
+# from sumolib.vehicle import CreateMultiVehTypeDistributions
 
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
-from .params import Parameters
-
-""" Call this once to error out before SUMO runs"""
-# MAKING SURE THAT SUMO_HOME IS IN THE PATH
-if "SUMO_HOME" in os.environ:
-    tools = os.path.join(os.environ["SUMO_HOME"], "tools")
-    sys.path.append(tools)
-else:
-    sys.exit("please declare environmental variable 'SUMO_HOME'")
+from ..params import Parameters
+from ..utils import FleetComposition
 
 
 def _stringify_list(_l: list) -> str:
@@ -66,39 +59,56 @@ class BaseSUMOFunc:
     #     creator = CreateMultiVehTypeDistributions()
 
     #     for param in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:
-            
-            
+
     #         creator.register_veh_type_distribution(veh_type_dist=CreateVehTypeDistribution(**param), )
 
     #     creator.to_xml(file_path=self._params.VEH_DIST_SAVE_PATH)
-        
+
     #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
     def create_veh_distribution(self, ) -> None:
         """
         Creating the text input file
         """
-        
-        tmp_dist_input_file = os.path.join(self._folder, self._params.VEH_DIST_NAME + "_temp.txt")
-        
-        for _, vehType in self._params.VEH_DIST.PARAMETERS.items():   
-        
+
+        tmp_dist_input_file = os.path.join(
+            self._params.WORKING_FOLDER,  "_vehDist_temp.txt")
+
+        veh_dist_file = self._params.set_var_inline(
+            self._params.create_working_path(self._params.VEH_DIST_FILE)
+            )
+
+        for _, vehType in self._params.VEH_DIST.PARAMETERS.items():
+
             with open(tmp_dist_input_file, 'w') as f:
                 """
                 Create a list of rows to write to the text file
-                """ 
+                """
                 for paramter, value in vehType:
-                    f.write('; '.join([paramter, ] + value if isinstance(value, list) else [value]))
+                    f.write(
+                        '; '.join([paramter, ] + value if isinstance(value, list) else [value]))
 
-            subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py", tmp_dist_input_file, 
-                             '--name', vehType.NAME, '-o', self._params.VEH_DIST_FILE, '--size', vehType.SIZE])
+            subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py", 
+                            tmp_dist_input_file,
+                            '--name', vehType.NAME, 
+                            '-o', veh_dist_file,
+                            '--size', vehType.SIZE])
 
         os.remove(tmp_dist_input_file)
 
-    
-    def 
+    def implement_fleet_composition(self, ):
+        """
+        This function 
+        """
 
+        f = FleetComposition(self._params.VEH_DIST.composition,
+                             seed=self._params.SEED, route_file=self._params.ROUTE_FILE)
 
+        f.replace_vehType(
+            output_path=self._params.set_var_inline(
+                self._params.create_working_path(self._params.ROUTE_FILE)
+            )
+        )
     # def prior_veh_dist()
 
 
@@ -119,7 +129,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         This is the main function. It: 
             1. creates a folder location from where to work from
             2. generates the input files for the varying parameters
-            2. 
+            2. runs the specific runner
             3. 
         """
 
