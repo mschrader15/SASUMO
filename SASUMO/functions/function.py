@@ -1,4 +1,5 @@
 import os
+import glob
 import subprocess
 import sys
 # from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
@@ -14,6 +15,7 @@ from copy import deepcopy
 from datetime import datetime
 from ..params import Parameters
 from ..utils import FleetComposition
+from .output import TotalEmissionsHandler
 
 
 def _stringify_list(_l: list) -> str:
@@ -23,27 +25,24 @@ def _stringify_list(_l: list) -> str:
 @ray.remote
 class BaseSUMOFunc:
     def __init__(self, params: Parameters, *args, **kwargs):
+
         self._params = deepcopy(params)
-        self._folder = self.create_folder()
+        # self._folder = 
 
     def _dump_parameters(self, ):
         self._params.save(self._folder)
 
+    @ray.method(num_returns=1)
     def run(self, *args, **kwargs):
         # dump the parameters at run time
         self._dump_parameters()
 
         # then call the inner run function
-        self._run(*args, **kwargs)
+        return self._run(*args, **kwargs)
 
     def _run(self, ):
         pass
-
-    def create_folder(self, ) -> str:
-        folder = os.path.join(self._params['working_folder'], "-".join(
-            [str(datetime.now()).replace(":", "-"), uuid.uuid4().hex]))
-        os.makedirs(folder, exist_ok=True)
-        return folder
+        # return folder
 
     @property
     def output(self, ) -> float:
@@ -109,6 +108,13 @@ class BaseSUMOFunc:
                 self._params.create_working_path(self._params.ROUTE_FILE)
             )
         )
+
+    def cleanup(self, ) -> None:
+        for f in glob.glob(f"{self._params.WORKING_FOLDER}/*.temp.*", ):
+            os.remove(f)
+
+        self._dump_parameters()    
+
     # def prior_veh_dist()
 
 
@@ -116,13 +122,21 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def __init__(self, params, *args, **kwargs):
 
-        from SASUMO.SASUMO.output import TotalEmissionsHandler
+        exec()
 
         super().__init__(params, *args, **kwargs)
         self._output_handler = TotalEmissionsHandler(params)
 
-    def _output(self):
+    @property
+    def output(self):
         return self._output_handler.y
+
+    def _handle_matlab(self, ):
+        """
+        This function should handle matlab. 
+        This means that it should connect to a running matlab instance and pass said connection to the main function running the simulation 
+        """
+        pass
 
     def run(self, ):
         """
@@ -132,5 +146,13 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
             2. runs the specific runner
             3. 
         """
+        self.create_folder()
+
+        self.create_veh_distribution()
+        self.implement_fleet_composition()
+
+        self._handle_matlab()
+
+        
 
         return self.output

@@ -1,8 +1,10 @@
+from datetime import datetime
 import sys
 import os
 # from copy import deepcopy
 from typing import Any, Dict, Hashable, Union
 import json
+import uuid
 import yaml
 import pendulum
 # from dataclasses import dataclass
@@ -23,6 +25,12 @@ def _remover(d: dict, p: Hashable, default=None) -> Any:
         return d.pop(p)
     except KeyError:
         return default
+
+
+def create_folder(folder_root) -> str:
+    folder = os.path.join(folder_root, "-".join([str(datetime.now()).replace(":", "-"), uuid.uuid4().hex]))
+    os.makedirs(folder, exist_ok=True)
+    return folder
 
 
 class _FlexibleDict:
@@ -100,6 +108,7 @@ class _VehDist:
         return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()}
 
 
+
 class ProcessParameters(_FlexibleDict):
 
     """
@@ -110,9 +119,9 @@ class ProcessParameters(_FlexibleDict):
     It allows for logging and will save itself and the parameters inside of it to the "working folder"
     """
 
-    def __init__(self, parameter_json: Union[str, dict], working_folder: os.PathLike, seed: int) -> None:
+    def __init__(self, parameter_json: Union[str, dict], seed: int, working_folder: str = None, replay_folder: str = None) -> None:
         """ Handle creating the logger and the folder location """
-        self.WORKING_FOLDER = working_folder
+        self.WORKING_FOLDER = create_folder(working_folder) if working_folder else replay_folder
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         self._create_log()

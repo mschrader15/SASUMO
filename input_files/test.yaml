@@ -93,9 +93,11 @@ SensitivityAnalysis:
     
 
 SimulationCore:
-
-  # This should point to the "f(variables)" function
-  function: runners.sa_dispatcher
+ 
+  cpu_cores: 60 
+  preprocessing: None
+  # This should point to a function in the
+  function: .functions.EmissionsSUMOFunc 
   arguments: 
     *sa_variables
     

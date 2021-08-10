@@ -3,15 +3,38 @@ from typing import Any, List, Tuple, Union
 import yaml
 from dataclasses import dataclass
 
-@dataclass
-class _UniformDist:
-    min: float
-    max: float
-    # categorical: tuple = ()
+
+class _Dist:
+
+    def transform(self, value: float) -> Any:
+        return self._transform(value)
+
+    def _transform(self, value: float) -> Any:
+        return value
+
 
 @dataclass
-class _UniformSample:
+class _UniformDist(_Dist):
+    min: float
+    max: float
+
+    def _transform(self, value: float) -> Any:
+        return value
+    
+    @property
+    def bounds(self, ) -> Tuple[float]:
+        return self.min, self.max
+    
+@dataclass
+class _UniformSample(_Dist):
     categorical: list
+    
+    @property
+    def bounds(self, ) -> Tuple[float]:
+        return 0, len(self.categorical)
+
+    def _transform(self, value: float) -> Any:
+        return self.categorical[int(value)]
 
 @dataclass
 class _DistributionSettings:
@@ -29,7 +52,6 @@ class _DistributionSettings:
             'uniform sample': _UniformSample,
             'uniform': _UniformDist
         }[self.type](**kwargs)
-
 
 @dataclass
 class _Generator:
@@ -70,7 +92,15 @@ class _SensitivityAnalysisSettings:
     @property
     def variable_num(self, ) -> int:
         return len(self.variables)
-# @dataclass
+
+
+@dataclass
+class _SimulationCore:
+    preprocessing: str
+    function: str 
+    arguments: str
+    cpu_cores: int
+
 
 @dataclass
 class _Settings:
@@ -84,20 +114,20 @@ class _Settings:
         self._metadata = d 
     
     @property
-    def sensitivity_analysis(self, ) -> dict:
+    def sensitivity_analysis(self, ) -> _SensitivityAnalysisSettings:
         return self._sensitivity_analysis
 
     @sensitivity_analysis.setter
     def sensitivity_analysis(self,  d: dict) -> dict:
-        self._sensitivity_analysis =_SensitivityAnalysisSettings(d)
+        self._sensitivity_analysis = _SensitivityAnalysisSettings(d)
 
     @property
-    def simulation_core(self, ) -> dict:
+    def simulation_core(self, ) -> _SimulationCore:
         return self._simulation_core
 
     @simulation_core.setter
     def simulation_core(self,  d: dict) -> dict:
-        self._simulation_core = d
+        self._simulation_core = _SimulationCore(**d)
     
     @property
     def file_manager(self, ) -> dict:
