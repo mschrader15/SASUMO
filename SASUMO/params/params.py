@@ -10,6 +10,7 @@ import pendulum
 # from dataclasses import dataclass
 import logging
 
+from .yaml_handler import Settings4SASUMO
 
 """ Call this once to error out before SUMO runs"""
 # MAKING SURE THAT SUMO_HOME IS IN THE PATH
@@ -106,10 +107,10 @@ class _VehDist:
     @property
     def composition(self, ) -> Dict[str, float]:
         return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()}
+    
 
 
-
-class ProcessParameters(_FlexibleDict):
+class ReplayParameters(_FlexibleDict):
 
     """
     ProcessParameters is the "organizational class" for an individual simulation process
@@ -121,7 +122,91 @@ class ProcessParameters(_FlexibleDict):
 
     def __init__(self, parameter_json: Union[str, dict], seed: int, working_folder: str = None, replay_folder: str = None) -> None:
         """ Handle creating the logger and the folder location """
+        
         self.WORKING_FOLDER = create_folder(working_folder) if working_folder else replay_folder
+
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)
+        self._create_log()
+
+        """ Store the location of SUMO """
+        self.SUMO_HOME = SUMO_HOME
+        self.SEED = seed   # TODO: figure out where the random seed is set
+        params = self._load_json(parameter_json)
+
+        """ Vehicle Distribution Parameters"""
+        self.VEH_DIST = _VehDist(_remover(params, 'car-following-parameters'))
+
+        """ Pass the rest of the parameters to myself. This isn't friendly for linter, 
+        but is ultimately friendly for saving state
+        """
+        self.compose(params)
+
+    def _create_log(self, ) -> None:
+        fh = logging.FileHandler(os.path.join(
+            self.WORKING_FOLDER, 'simulation.log'))
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+
+    def create_working_path(self, path: str, ) -> os.PathLike:
+        return os.path.join(self.WORKING_FOLDER, os.path.split(path)[-1])
+
+    def set_var_inline(self, var: Any, value: Any):
+        self[var] = value
+        try:
+            self.log_info(f"Setting variable: {var} to {value}")
+        except TypeError:
+            self.log_info(f"Setting variable: {var} to value that can't be converted to string")
+        return value
+
+    def log_info(self, message) -> None:
+        self.logger.info(message)
+
+    @staticmethod
+    def _load(input_object: Union[str, dict]) -> dict:
+        if isinstance(input_object, dict):
+            return input_object
+        with open(input_object, "rb") as f:
+            return json.load(f) if 'json' in os.path.splitext(input_object)[1] else yaml.load(f)
+
+    def save(self, location: str):
+        """
+        Save this beast of a class to a json file
+
+        Args:
+            location (str): where to save the file too
+        """
+        with open(location, "w") as f:
+            f.write(
+                json.dumps(
+                    {val: self[val]
+                        for val in dir(self) if "__" not in val[:2]},
+                    default=lambda o: o.__dict__ if not isinstance(
+                        o, pendulum.DateTime) else str(o),
+                    sort_keys=True,
+                    indent=4,
+                )
+            )
+
+
+class ProcessParameters(_FlexibleDict):
+
+    """
+    ProcessParameters is the "organizational class" for an individual simulation process
+
+    It is passed the global Sensitivity Analysis Setting
+
+    It allows for logging and will save itself and the parameters inside of it to the "working folder"
+    """
+
+    def __init__(self, yaml_settings: Settings4SASUMO, seed: int, sample: dict) -> None:
+        """ Handle creating the logger and the folder location """
+        
+        self.WORKING_FOLDER = create_folder() if yaml_settings else replay_folder
+
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         self._create_log()

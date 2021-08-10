@@ -1,26 +1,30 @@
 Metadata:
-  name: test
+  name: *name 
+    test
   author: mcschrader@crimson.ua.edu
 
 SensitivityAnalysis:
-
+  
+  working_root: "${SENSITIVITY_ANALYSIS_OUTPUT}/"&name
+  num_runs: 10
   variables: &sa_variables
     FleetComposition:
       variable_name: fleet_composition
+      type: fleet_composition
       distribution: &distribution
         type: uniform
         params:
-          min: 0.1
-          max: 0.5
+          min: 0.0
+          max: 0.7
       generator: 
         function: functions.fleet_composition
         arguments: *distribution
       
     CarFollowingParameters:
       PersonalCar: &PersonalCar
-        
         Tau:
-          variable_name: tau_car
+          variable_name: tau
+          type: car_following_parameter
           distribution:
             type: uniform
             params:
@@ -28,7 +32,8 @@ SensitivityAnalysis:
               max: 3 
         
         Delta:
-          variable_name: delta_car
+          variable_name: delta
+          type: car_following_parameter
           distribution:
             type: uniform
             params:
@@ -36,7 +41,8 @@ SensitivityAnalysis:
               max: 10
         
         Accel:
-          variable_name: accel_car
+          variable_name: accel
+          type: car_following_parameter
           distribution: 
             type: uniform
             params:
@@ -46,7 +52,8 @@ SensitivityAnalysis:
       Class8Truck: &Class8Truck
         
         Tau:
-          variable_name: tau_truck
+          variable_name: tau
+          type: car_following_parameter
           distribution:
             type: uniform
             params:
@@ -54,7 +61,8 @@ SensitivityAnalysis:
               max: 3 
 
         Delta:
-          variable_name: delta_truck
+          variable_name: delta
+          type: car_following_parameter
           distribution:
             type: uniform
             params:
@@ -62,7 +70,8 @@ SensitivityAnalysis:
               max: 10
         
         Accel:
-          variable_name: accel_truck
+          variable_name: accel
+          type: car_following_parameter
           distribution: 
             type: uniform
             params:
@@ -97,10 +106,16 @@ SimulationCore:
   cpu_cores: 60 
   preprocessing: None
   # This should point to a function in the
-  function: .functions.EmissionsSUMOFunc 
-  arguments: 
-    *sa_variables
-    
+  manager_function: 
+    module: functions.EmissionsSUMOFunc
+    # sensitivity analysis sample is inherently the first argument 
+    arguments: 
+
+  simulation_function:  
+      module: runners.NoTraciSimulationMonteCarlo
+      path: ${SIMULATION_ROOT}
+      arguments: 
+        settings: ${SIMULATION_ROOT}/sim-settings/just-sim/06_11_21.json
 
 FileManager:
   # I want to make moving the files explicitly defined by the user. 

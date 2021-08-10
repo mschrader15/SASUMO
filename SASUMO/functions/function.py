@@ -1,7 +1,9 @@
+from SASUMO.SASUMO.utils.utils import beefy_import
 import os
 import glob
 import subprocess
 import sys
+import importlib
 # from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
 
 import ray
@@ -13,8 +15,11 @@ import uuid
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
-from ..params import Parameters
-from ..utils import FleetComposition
+
+# internal imports
+from params import Settings4SASUMO
+from params import ProcessParameters
+from utils import FleetComposition
 from .output import TotalEmissionsHandler
 
 
@@ -22,27 +27,30 @@ def _stringify_list(_l: list) -> str:
     ", ".join(map(_l, float))
 
 
-@ray.remote
 class BaseSUMOFunc:
-    def __init__(self, params: Parameters, *args, **kwargs):
+    def __init__(self, yaml_params: Settings4SASUMO, sample: dict, *args, **kwargs):
 
-        self._params = deepcopy(params)
+        self._params = ProcessParameters(yaml_params, sample)
         # self._folder = 
+
+    def parameter_transformation(self, ):
+
+
+
 
     def _dump_parameters(self, ):
         self._params.save(self._folder)
 
-    @ray.method(num_returns=1)
-    def run(self, *args, **kwargs):
-        # dump the parameters at run time
-        self._dump_parameters()
+    # def run(self, *args, **kwargs):
+    #     # dump the parameters at run time
+    #     self._dump_parameters()
 
-        # then call the inner run function
-        return self._run(*args, **kwargs)
+    #     # then call the inner run function
+    #     return self._run(*args, **kwargs)
 
-    def _run(self, ):
-        pass
-        # return folder
+    # def _run(self, ):
+    #     pass
+    #     # return folder
 
     @property
     def output(self, ) -> float:
@@ -110,22 +118,30 @@ class BaseSUMOFunc:
         )
 
     def cleanup(self, ) -> None:
-        for f in glob.glob(f"{self._params.WORKING_FOLDER}/*.temp.*", ):
+        # delete files
+        for f in [
+            self._params.EMISSIONS_FILE,
+            self._params.VEH_DIST_FILE,
+            self._params.ROUTE_FILE
+        ]:
             os.remove(f)
+
+        # for f in glob.glob(f"{self._params.WORKING_FOLDER}/*.temp.*", ):
+        #     os.remove(f)
 
         self._dump_parameters()    
 
     # def prior_veh_dist()
 
-
+@ray.remote
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
-    def __init__(self, params, *args, **kwargs):
+    def __init__(self, yaml_settings, settings_dict, *args, **kwargs): 
 
-        exec()
-
-        super().__init__(params, *args, **kwargs)
+        super().__init__(yaml_settings, settings_dict, *args, **kwargs)
         self._output_handler = TotalEmissionsHandler(params)
+        self._simulation = beefy_import(self._params.simulation)
+        # self._simulation = importlib.import_module(self._params.)
 
     @property
     def output(self):
@@ -137,22 +153,23 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         This means that it should connect to a running matlab instance and pass said connection to the main function running the simulation 
         """
         pass
-
+    
+    @ray.method(num_returns=1)
     def run(self, ):
         """
         This is the main function. It: 
             1. creates a folder location from where to work from
             2. generates the input files for the varying parameters
-            2. runs the specific runner
+            2. runs the specific runner. It should have a "main" method. 
+               I can create an abstract base class later
             3. 
         """
-        self.create_folder()
 
+        self.create_folder()
         self.create_veh_distribution()
         self.implement_fleet_composition()
-
         self._handle_matlab()
 
-        
+        self._simulation.main()
 
         return self.output

@@ -1,4 +1,4 @@
 SALib
 modin
-ray
+ray[default]
 numba

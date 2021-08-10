@@ -1,4 +1,5 @@
-from SASUMO.SASUMO import sensitivity_analysis
+
+from SASUMO.SASUMO.utils.utils import beefy_import
 from typing import Any, List, Tuple, Union
 import yaml
 from dataclasses import dataclass
@@ -73,12 +74,15 @@ class _SensitivityAnalysisVariable:
 class _SensitivityAnalysisOutput:
     module: str
 
+
 class _SensitivityAnalysisSettings:
 
     def __init__(self, d: dict) -> None:
         self.variables: List[_SensitivityAnalysisVariable] = self._compose_variables(d['variables'])
         self.names: str = [v.name for v in self.variables]
         self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(**d['Output']) 
+        self.num_runs: int = d['num_runs']
+        self.working_root: str = beefy_import(d['working_root'])
         
     def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
         for _, variable_d in d.items():
@@ -95,12 +99,47 @@ class _SensitivityAnalysisSettings:
 
 
 @dataclass
+class _FunctionArguments:
+    settings: str = None
+
+
+@dataclass
+class _SimFunctionCore:
+    module: str
+    arguments: _FunctionArguments = None 
+    path: str = None 
+
+    @property
+    def arguments(self, ) -> _FunctionArguments:
+        return self._arguments
+    
+    @arguments.setter
+    def arguments(self, kwargs: dict):
+        self._arguments = _FunctionArguments(**kwargs) if kwargs else None
+
+@dataclass
 class _SimulationCore:
     preprocessing: str
-    function: str 
-    arguments: str
     cpu_cores: int
+    manager_function: _SimFunctionCore 
+    simulation_function: _SimFunctionCore
+    # arguments: str
 
+    @property
+    def manager_function(self, ) -> _SimFunctionCore:
+        return self._manager_function
+    
+    @manager_function.setter
+    def manager_function(self, kwargs: dict):
+        self._manager_function = _SimFunctionCore(**kwargs)
+
+    @property
+    def simulation_function(self, ) -> _SimFunctionCore:
+        return self._simulation_function
+    
+    @simulation_function.setter
+    def simulation_function(self, kwargs: dict):
+        self._simulation_function = _SimFunctionCore(**kwargs)
 
 @dataclass
 class _Settings:
@@ -154,9 +193,9 @@ class Settings4SASUMO(_Settings):
         self.simulation_core = d['SimulationCore']
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     
-#     import os
-#     ROOT = os.path.dirname(os.path.abspath(__file__))
-#     s = Settings4SASUMO(os.path.join(ROOT, '../../', 'input_files', 'test.yaml'))
-#     print(s.simulation_core)
+    import os
+    ROOT = os.path.dirname(os.path.abspath(__file__))
+    s = Settings4SASUMO(os.path.join(ROOT, '../../', 'input_files', 'test.yaml'))
+    print(s.simulation_core)
