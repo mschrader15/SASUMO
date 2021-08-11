@@ -1,11 +1,11 @@
 Metadata:
-  name: *name 
-    test
+  # The name will also show up as the main folder for simulation 
+  name: test
   author: mcschrader@crimson.ua.edu
 
 SensitivityAnalysis:
-  
-  working_root: "${SENSITIVITY_ANALYSIS_OUTPUT}/"&name
+
+  working_root: ${SENSITIVITY_ANALYSIS_OUTPUT}
   num_runs: 10
   variables: &sa_variables
     FleetComposition:
@@ -21,14 +21,17 @@ SensitivityAnalysis:
         arguments: *distribution
       
     CarFollowingParameters:
+        
       PersonalCar: &PersonalCar
+
         Tau:
           variable_name: tau
           type: car_following_parameter
           distribution:
             type: uniform
             params:
-              min: 0.1
+              width: 0.5
+              min: 0.5
               max: 3 
         
         Delta:
@@ -37,7 +40,8 @@ SensitivityAnalysis:
           distribution:
             type: uniform
             params:
-              min: 0.1
+              width: 0.5
+              min: 1
               max: 10
         
         Accel:
@@ -46,9 +50,19 @@ SensitivityAnalysis:
           distribution: 
             type: uniform
             params:
-              min: 0.5
+              width: 0.1
+              min: 0.2
               max: 4
         
+        generator_arguments: &PersonalCarArguments         
+          common_parameters: |
+            length;uniform(2,5)
+            speedFactor;uniform(1.1,0.1)
+            param; mass; normal(1190,300); [800, 1700]
+            vClass;passenger
+            carFollowingModel;IDM
+            emissionClass;PHEMlight/PC_G_EU4
+            
       Class8Truck: &Class8Truck
         
         Tau:
@@ -57,7 +71,8 @@ SensitivityAnalysis:
           distribution:
             type: uniform
             params:
-              min: 0.1
+              width: 0.5
+              min: 0.5
               max: 3 
 
         Delta:
@@ -66,7 +81,8 @@ SensitivityAnalysis:
           distribution:
             type: uniform
             params:
-              min: 0.1
+              width: 2
+              min: 3
               max: 10
         
         Accel:
@@ -75,8 +91,18 @@ SensitivityAnalysis:
           distribution: 
             type: uniform
             params:
-              min: 0.5
-              max: 4
+              min: 1
+              max: 3
+              width: 0.5
+        
+        generator_arguments: 
+            common_parameters: |
+              length;uniform(19,23)
+              speedFactor;uniform(1,0.1)
+              param; mass; normal(24522,7142); [7000, 43000]
+              vClass;trailer
+              carFollowingModel;IDM
+              emissionClass;PHEMlight/HDV_TT_D_EU6
 
       generator:
         function: functions.create_vehicle_distribution
@@ -85,7 +111,8 @@ SensitivityAnalysis:
           - *Class8Truck
       
     ModelFidelity:
-      variable_name: model_fidelelity
+      variable_name: model_fidelity
+      type: model_fidelity
       distribution:
         type: uniform sample
         params:

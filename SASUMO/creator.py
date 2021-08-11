@@ -10,7 +10,7 @@ from copy import deepcopy
 # internal imports 
 from params import Settings4SASUMO
 from params import ProcessParameters
-from functions import BaseSUMOFunc
+from .functions import BaseSUMOFunc
 from utils import path_constructor, beefy_import
 
 # external imports
@@ -32,6 +32,7 @@ class SASUMO:
         self._update_path()
 
         # import the desired module
+
         self._f: BaseSUMOFunc = beefy_import(self._settings.simulation_core.manager_function.module)
 
     @staticmethod
@@ -62,14 +63,6 @@ class SASUMO:
         ]
 
         return np.asarray(sampleset)
- 
-    def _transform_sample(self, sample_set: np.array):
-        return [
-            self._settings.sensitivity_analysis.variables[
-                i
-            ].distribution.params.transform(sample)
-            for i, sample in enumerate(sample_set)
-        ]
 
 
     def _compose_problem(self, ) -> dict:

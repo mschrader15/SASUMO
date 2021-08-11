@@ -20,7 +20,7 @@ from datetime import datetime
 from params import Settings4SASUMO
 from params import ProcessParameters
 from utils import FleetComposition
-from .output import TotalEmissionsHandler
+from output import TotalEmissionsHandler
 
 
 def _stringify_list(_l: list) -> str:
@@ -32,12 +32,7 @@ class BaseSUMOFunc:
 
         self._params = ProcessParameters(yaml_params, sample)
         # self._folder = 
-
-    def parameter_transformation(self, ):
-
-
-
-
+    
     def _dump_parameters(self, ):
         self._params.save(self._folder)
 

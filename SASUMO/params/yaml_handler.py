@@ -1,8 +1,16 @@
-
-from SASUMO.SASUMO.utils.utils import beefy_import
 from typing import Any, List, Tuple, Union
+import shutil
 import yaml
 from dataclasses import dataclass
+
+
+# def path_constructor(path: str) -> str:
+#     ''' Extract the matched value, expand env variable, and replace the match '''
+#     path_matcher = re.compile(r'\$\{([^}^{]+)\}')
+#     match = path_matcher.match(path)
+#     env_var = match.group()[2:-1]
+#     return os.environ.get(env_var) + path[match.end():]
+
 
 
 class _Dist:
@@ -18,6 +26,7 @@ class _Dist:
 class _UniformDist(_Dist):
     min: float
     max: float
+    width: float = None
 
     def _transform(self, value: float) -> Any:
         return value
@@ -25,7 +34,7 @@ class _UniformDist(_Dist):
     @property
     def bounds(self, ) -> Tuple[float]:
         return self.min, self.max
-    
+
 @dataclass
 class _UniformSample(_Dist):
     categorical: list
@@ -42,6 +51,7 @@ class _DistributionSettings:
     
     type: str
     params: Union[_UniformDist, _UniformSample]
+    width: float
 
     @property
     def params(self, ) -> Union[_UniformDist, _UniformSample]:
@@ -53,6 +63,13 @@ class _DistributionSettings:
             'uniform sample': _UniformSample,
             'uniform': _UniformDist
         }[self.type](**kwargs)
+    
+    @property
+    def bounds(self, ) -> Tuple[float, float]:
+        return self.params.bounds
+
+    def transform(self, value: float) -> Any:
+        return self.params.transform(value) 
 
 @dataclass
 class _Generator:
@@ -63,15 +80,17 @@ class _Generator:
 
 class _SensitivityAnalysisVariable:
 
-    def __init__(self, variable_name, distribution, generator=None) -> None:
-        self.name: str = variable_name
+    def __init__(self, name, variable_name, distribution, type, generator=None) -> None:
+        self.name: str = "_".join([name, variable_name])
+        self.type: str = type
         self.distribution: _DistributionSettings = _DistributionSettings(type=distribution['type'], params=distribution['params'])
-        self.generator: Union[_Generator, None] = _Generator(**generator) if generator else None
-
+        self.generator: Union[_Generator, None] = _Generator(**generator) if generator else None    
+    
     # def _type_helper()
 
 @dataclass
 class _SensitivityAnalysisOutput:
+    
     module: str
 
 
@@ -82,13 +101,13 @@ class _SensitivityAnalysisSettings:
         self.names: str = [v.name for v in self.variables]
         self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(**d['Output']) 
         self.num_runs: int = d['num_runs']
-        self.working_root: str = beefy_import(d['working_root'])
+        self.working_root: str = d['working_root']
         
     def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
-        for _, variable_d in d.items():
+        for name, variable_d in d.items():
             if isinstance(variable_d, dict):
                 if 'variable_name' in variable_d.keys():
-                    l.append(_SensitivityAnalysisVariable(**variable_d))
+                    l.append(_SensitivityAnalysisVariable(name, **variable_d))
                 else:
                     self._compose_variables(variable_d, l)
         return l
@@ -141,16 +160,23 @@ class _SimulationCore:
     def simulation_function(self, kwargs: dict):
         self._simulation_function = _SimFunctionCore(**kwargs)
 
+
+@dataclass
+class _Metadata:
+    name: str
+    author: str
+
+
 @dataclass
 class _Settings:
 
     @property
-    def metadata(self, ) -> object:
+    def metadata(self, ) -> _Metadata:
         return self._metadata
     
     @metadata.setter
     def metadata(self, d: dict) -> None:
-        self._metadata = d 
+        self._metadata = _Metadata(**d) 
     
     @property
     def sensitivity_analysis(self, ) -> _SensitivityAnalysisSettings:
@@ -181,6 +207,8 @@ class Settings4SASUMO(_Settings):
 
     def __init__(self, file_path: str) -> None:
         
+        self._yaml_settings_path = file_path
+
         with open(file_path, 'r') as f:
             self._unpack_settings(yaml.safe_load(f))
 
@@ -192,6 +220,17 @@ class Settings4SASUMO(_Settings):
         self.sensitivity_analysis = d['SensitivityAnalysis']
         self.simulation_core = d['SimulationCore']
 
+    def save_myself(self, file_location: str):
+        """
+        Copy the input file to the location that the simulation is ran from. Also refered to as the "Working Root"
+
+        Args:
+            file_location (str): [description]
+        """
+        file_name = os.path.split(self._yaml_settings_path)
+        shutil.copy(self._f, os.path.join(file_location, file_name))
+    
+    # def _read
 
 if __name__ == "__main__":
     
