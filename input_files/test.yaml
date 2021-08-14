@@ -8,7 +8,9 @@ SensitivityAnalysis:
   working_root: ${SENSITIVITY_ANALYSIS_OUTPUT}
   num_runs: 10
   variables: &sa_variables
+
     FleetComposition:
+
       variable_name: fleet_composition
       type: fleet_composition
       distribution: &distribution
@@ -18,11 +20,12 @@ SensitivityAnalysis:
           max: 0.7
       generator: 
         function: functions.fleet_composition
-        arguments: *distribution
+        arguments: 
+          - fleet_composition
       
     CarFollowingParameters:
         
-      PersonalCar: &PersonalCar
+      PersonalCar:
 
         Tau:
           variable_name: tau
@@ -63,7 +66,7 @@ SensitivityAnalysis:
             carFollowingModel;IDM
             emissionClass;PHEMlight/PC_G_EU4
             
-      Class8Truck: &Class8Truck
+      Class8Truck:
         
         Tau:
           variable_name: tau
@@ -107,8 +110,8 @@ SensitivityAnalysis:
       generator:
         function: functions.create_vehicle_distribution
         arguments:
-          - *PersonalCar
-          - *Class8Truck
+          - PersonalCar
+          - Class8Truck
       
     ModelFidelity:
       variable_name: model_fidelity

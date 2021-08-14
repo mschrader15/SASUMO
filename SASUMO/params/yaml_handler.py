@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Union
+from typing import Any, Generator, List, Tuple, Union
 import shutil
 import yaml
 from dataclasses import dataclass
@@ -12,14 +12,22 @@ from dataclasses import dataclass
 #     return os.environ.get(env_var) + path[match.end():]
 
 
-
+@dataclass
 class _Dist:
 
     def transform(self, value: float) -> Any:
         return self._transform(value)
 
     def _transform(self, value: float) -> Any:
-        return value
+        return value 
+
+    @property
+    def sa_value(self, ) -> Any:
+        return self._sa_value
+    
+    @sa_value.setter
+    def sa_value(self, val: Any) -> None:
+        self._sa_value = val
 
 
 @dataclass
@@ -34,6 +42,8 @@ class _UniformDist(_Dist):
     @property
     def bounds(self, ) -> Tuple[float]:
         return self.min, self.max
+
+    # def 
 
 @dataclass
 class _UniformSample(_Dist):
@@ -51,7 +61,6 @@ class _DistributionSettings:
     
     type: str
     params: Union[_UniformDist, _UniformSample]
-    width: float
 
     @property
     def params(self, ) -> Union[_UniformDist, _UniformSample]:
@@ -84,9 +93,65 @@ class _SensitivityAnalysisVariable:
         self.name: str = "_".join([name, variable_name])
         self.type: str = type
         self.distribution: _DistributionSettings = _DistributionSettings(type=distribution['type'], params=distribution['params'])
-        self.generator: Union[_Generator, None] = _Generator(**generator) if generator else None    
+        self.generator: Union[_Generator, None] = _Generator(function=generator['function'], arguments=self) if generator else None    
+
+
+class _SensitivityAnalysisGroup:
+
+    """ Everything is at least a group. It becomes a variable if the correct parameters are present"""
+
+    def __init__(self, name, **kwargs) -> None:
+            
+        # self.generator = generator
+        self._variables = []
+
+        self.name = name
+        self.variables: List[_SensitivityAnalysisVariable] = kwargs
+        self._generator: _Generator = None 
+
+    @property
+    def variables(self, ):
+        pass
+        
+    @variables.setter
+    def variables(self, d: dict):
+        try:
+            self._variables.append(
+                _SensitivityAnalysisVariable(name="_".join([self.name, d['variable_name']]), **d)
+            )
+        except KeyError:
+            for name, items in d.items():
+                new_name = "_".join([self.name, name])
+
+                if name == 'generator':
+                    self.generator = items
+                    next
+
+                if isinstance(items, dict): 
+                    if 'variable_name' in items.keys():
+                        self._variables.append(_SensitivityAnalysisVariable(name=new_name, **items))
+                    else:
+                        self._variables.append(_SensitivityAnalysisGroup(name=new_name, **items))        
+
+    @variables.getter
+    def variables(self, ):
+        l = []
+        for var_obj in self._variables:
+            if isinstance(var_obj, _SensitivityAnalysisVariable): 
+                l.append(var_obj)
+            else:
+                l.extend(var_obj.variables)
+        return l
+
+    @property
+    def generator(self, ):
+        return self._generator
     
-    # def _type_helper()
+    @generator.setter
+    def generator(self, arg):
+        arguments = [v for _arg in arg['arguments'] for v in self._variables if _arg in v.name]
+        self._generator = _Generator(function=arg['function'], arguments=arguments)
+
 
 @dataclass
 class _SensitivityAnalysisOutput:
@@ -97,7 +162,7 @@ class _SensitivityAnalysisOutput:
 class _SensitivityAnalysisSettings:
 
     def __init__(self, d: dict) -> None:
-        self.variables: List[_SensitivityAnalysisVariable] = self._compose_variables(d['variables'])
+        self._variables: List[_SensitivityAnalysisGroup] = self._compose_variables(d['variables'])
         self.names: str = [v.name for v in self.variables]
         self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(**d['Output']) 
         self.num_runs: int = d['num_runs']
@@ -106,16 +171,28 @@ class _SensitivityAnalysisSettings:
     def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
         for name, variable_d in d.items():
             if isinstance(variable_d, dict):
-                if 'variable_name' in variable_d.keys():
-                    l.append(_SensitivityAnalysisVariable(name, **variable_d))
-                else:
-                    self._compose_variables(variable_d, l)
+                # if 'variable_name' in variable_d.keys():
+                l.append(
+                    _SensitivityAnalysisGroup(name, **variable_d)
+                    )
+                # else:
+                #     self._compose_variables(variable_d, l)
         return l
     
     @property
     def variable_num(self, ) -> int:
         return len(self.variables)
 
+    @property
+    def variables(self, ) -> List[_SensitivityAnalysisVariable]:
+        l = []
+        for var in self._variables:
+            if isinstance(var, _SensitivityAnalysisGroup):
+                l.extend(var.variables)
+            else:
+                l.append(var)
+        return l
+                
 
 @dataclass
 class _FunctionArguments:

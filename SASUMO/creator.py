@@ -69,7 +69,7 @@ class SASUMO:
         return {
             'num_vars': self._settings.sensitivity_analysis.variable_num,
             'names': self._settings.sensitivity_analysis.names,
-            'bounds': [var.distribution.params.bounds 
+            'bounds': [var.distribution.bounds 
                 for var in self._settings.sensitivity_analysis.variables
             ]
         } 

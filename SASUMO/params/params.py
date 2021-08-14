@@ -261,8 +261,9 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         self.logger.info(message)
 
     def disperse_sample(self, sample) -> None:
-        for sample, distribution in zip(sample, self.sensitivity_analysis.variables):
-            sample = distribution.params.transform(sample)
+        sample_like = []
+        for _s, distribution in zip(sample, self.sensitivity_analysis.variables):
+            _s = distribution.transform(_s)
             
             
 
