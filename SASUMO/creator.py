@@ -10,7 +10,7 @@ from copy import deepcopy
 # internal imports 
 from params import Settings4SASUMO
 from params import ProcessParameters
-from .functions import BaseSUMOFunc
+from functions import BaseSUMOFunc
 from utils import path_constructor, beefy_import
 
 # external imports
@@ -32,12 +32,7 @@ class SASUMO:
         self._update_path()
 
         # import the desired module
-
         self._f: BaseSUMOFunc = beefy_import(self._settings.simulation_core.manager_function.module)
-
-    @staticmethod
-    def _get_main_fn(self, ):
-        split_path = importlib.import_module(package=self._settings.simulation_core.manager_function.module)
 
     def _update_path(self, ):
         for new_path in [self._settings.simulation_core.manager_function.path, self._settings.simulation_core.simulation_function.path]:
@@ -51,18 +46,18 @@ class SASUMO:
         return random.randint(a=0, b=SEED)
 
     def _generate_samples(self, ) -> np.array:
-        # sampleset
-        sampleset = [
-            self._transform_sample(sample_set=sample)
-            for sample in 
-                saltelli.sample(
+        # # sampleset
+        # sampleset = [
+        #     self._transform_sample(sample_set=sample)
+        #     for sample in 
+                
+        # ]
+
+        return saltelli.sample(
                     self._problem,
                     self._settings.sensitivity_analysis.num_runs,
                     calc_second_order=False,
                 )
-        ]
-
-        return np.asarray(sampleset)
 
 
     def _compose_problem(self, ) -> dict:
@@ -78,7 +73,7 @@ class SASUMO:
         dispatch = [] 
         results = []
         for i in range(self._settings.sensitivity_analysis.num_runs):
-            dispatch.append([i, self._spawn_process()])
+            dispatch.append([i, self._spawn_process(i)])
             while len(dispatch) >= self._settings.simulation_core.cpu_cores:
                 finished, _ = ray.wait([_id for _, _id in dispatch], num_returns=1)
                 if len(finished):
@@ -89,7 +84,14 @@ class SASUMO:
         return results
 
     def _spawn_process(self, index: int) -> ray.ObjectRef:
-        return self._f.remote(deepcopy(self._settings), self._generate_seed()).run.remote()
+        
+        p = self._f(yaml_settings=deepcopy(self._settings), 
+                    sample=self._samples[index],
+                    seed=self._generate_seed()
+                    )
+        p.run()
+
+        return p
 
     # def _create_individual_run_settings(self, index: int):
     #     sample = self._samples[index]

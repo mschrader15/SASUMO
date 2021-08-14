@@ -4,19 +4,12 @@ import yaml
 from dataclasses import dataclass
 
 
-# def path_constructor(path: str) -> str:
-#     ''' Extract the matched value, expand env variable, and replace the match '''
-#     path_matcher = re.compile(r'\$\{([^}^{]+)\}')
-#     match = path_matcher.match(path)
-#     env_var = match.group()[2:-1]
-#     return os.environ.get(env_var) + path[match.end():]
-
-
 @dataclass
 class _Dist:
 
     def transform(self, value: float) -> Any:
-        return self._transform(value)
+        self.sa_value = self._transform(value)
+        # return 
 
     def _transform(self, value: float) -> Any:
         return value 
@@ -80,6 +73,7 @@ class _DistributionSettings:
     def transform(self, value: float) -> Any:
         return self.params.transform(value) 
 
+
 @dataclass
 class _Generator:
 
@@ -95,6 +89,8 @@ class _SensitivityAnalysisVariable:
         self.distribution: _DistributionSettings = _DistributionSettings(type=distribution['type'], params=distribution['params'])
         self.generator: Union[_Generator, None] = _Generator(function=generator['function'], arguments=self) if generator else None    
 
+    def transform(self, val):
+        self.distribution.transform(val)
 
 class _SensitivityAnalysisGroup:
 
@@ -117,21 +113,18 @@ class _SensitivityAnalysisGroup:
     def variables(self, d: dict):
         try:
             self._variables.append(
-                _SensitivityAnalysisVariable(name="_".join([self.name, d['variable_name']]), **d)
+                _SensitivityAnalysisVariable(name=self.name, **d)
             )
-        except KeyError:
+        except TypeError:
             for name, items in d.items():
-                new_name = "_".join([self.name, name])
-
                 if name == 'generator':
                     self.generator = items
                     next
-
                 if isinstance(items, dict): 
                     if 'variable_name' in items.keys():
-                        self._variables.append(_SensitivityAnalysisVariable(name=new_name, **items))
+                        self._variables.append(_SensitivityAnalysisVariable(name=self.name, **items))
                     else:
-                        self._variables.append(_SensitivityAnalysisGroup(name=new_name, **items))        
+                        self._variables.append(_SensitivityAnalysisGroup(name=name, **items))        
 
     @variables.getter
     def variables(self, ):
@@ -212,6 +205,7 @@ class _SimFunctionCore:
     @arguments.setter
     def arguments(self, kwargs: dict):
         self._arguments = _FunctionArguments(**kwargs) if kwargs else None
+
 
 @dataclass
 class _SimulationCore:

@@ -1,4 +1,3 @@
-from SASUMO.SASUMO.utils.utils import beefy_import
 import os
 import glob
 import subprocess
@@ -20,7 +19,8 @@ from datetime import datetime
 from params import Settings4SASUMO
 from params import ProcessParameters
 from utils import FleetComposition
-from output import TotalEmissionsHandler
+from .output import TotalEmissionsHandler
+from utils import beefy_import
 
 
 def _stringify_list(_l: list) -> str:
@@ -28,10 +28,13 @@ def _stringify_list(_l: list) -> str:
 
 
 class BaseSUMOFunc:
-    def __init__(self, yaml_params: Settings4SASUMO, sample: dict, *args, **kwargs):
 
-        self._params = ProcessParameters(yaml_params, sample)
+    def __init__(self, yaml_params: Settings4SASUMO, sample: dict, seed: int, *args, **kwargs):
+
+        self._params = ProcessParameters(yaml_settings=yaml_params, sample=sample, seed=seed)
         # self._folder = 
+        # self._params.save()
+        self._dump_parameters()
     
     def _dump_parameters(self, ):
         self._params.save(self._folder)
@@ -123,17 +126,18 @@ class BaseSUMOFunc:
 
         # for f in glob.glob(f"{self._params.WORKING_FOLDER}/*.temp.*", ):
         #     os.remove(f)
-
         self._dump_parameters()    
 
     # def prior_veh_dist()
 
-@ray.remote
+# @ray.remote
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
-    def __init__(self, yaml_settings, settings_dict, *args, **kwargs): 
+    def __init__(self, yaml_settings, sample, seed, *args, **kwargs): 
 
-        super().__init__(yaml_settings, settings_dict, *args, **kwargs)
+
+        super().__init__(yaml_settings, sample, seed, *args, **kwargs)
+
         self._output_handler = TotalEmissionsHandler(params)
         self._simulation = beefy_import(self._params.simulation)
         # self._simulation = importlib.import_module(self._params.)
@@ -149,7 +153,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         """
         pass
     
-    @ray.method(num_returns=1)
+    # @ray.method(num_returns=1)
     def run(self, ):
         """
         This is the main function. It: 

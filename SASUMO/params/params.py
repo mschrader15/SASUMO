@@ -9,8 +9,8 @@ import yaml
 # import pendulum
 # from dataclasses import dataclass
 import logging
-
-from yaml_handler import Settings4SASUMO
+from utils import path_constructor
+from .yaml_handler import Settings4SASUMO
 
 """ Call this once to error out before SUMO runs"""
 # MAKING SURE THAT SUMO_HOME IS IN THE PATH
@@ -212,7 +212,12 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         vars(self).update(vars(yaml_settings))
 
         self.WORKING_FOLDER = create_folder(
-            os.path.join(self.sensitivity_analysis.working_root, self.metadata.name)
+            os.path.join(
+                path_constructor(
+                    self.sensitivity_analysis.working_root
+                    ), 
+                self.metadata.name
+                )
         )
 
         """ Create the Logger"""
@@ -226,10 +231,10 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         # params = self._load_json(parameter_json)
 
         """ Process the Sample """
-        self._disperse_sample(sample)
+        self.disperse_sample(sample)
 
         """ Vehicle Distribution Parameters"""
-        self.VEH_DIST = _VehDist(_remover(params, 'car-following-parameters'))
+        # self.VEH_DIST = _VehDist(_remover(params, 'car-following-parameters'))
 
         """ Pass the rest of the parameters to myself. This isn't friendly for linter, 
         but is ultimately friendly for saving state
@@ -261,12 +266,15 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         self.logger.info(message)
 
     def disperse_sample(self, sample) -> None:
-        sample_like = []
         for _s, distribution in zip(sample, self.sensitivity_analysis.variables):
-            _s = distribution.transform(_s)
-            
-            
+            distribution.transform(_s)
+        
+    
+    def save_settings(self, ):
 
+        return self.save(
+                os.path.join(self.WORKING_FOLDER, 'settings.json')
+            )
 
         # [
         #     self.sensitivity_analysis.variables[
@@ -292,6 +300,6 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
     #         return json.load(f) if 'json' in os.path.splitext(input_object)[1] else yaml.load(f)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    Parameter
+#     ProcessParameters(yaml_settings=)
