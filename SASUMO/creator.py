@@ -1,4 +1,5 @@
 # from SASUMO.SASUMO.functions.function import 
+import os
 import sys
 import ray
 import click
@@ -6,6 +7,7 @@ import random
 import importlib
 import numpy as np
 from copy import deepcopy
+from datetime import datetime
 
 # internal imports 
 from params import Settings4SASUMO
@@ -24,7 +26,13 @@ SEED = 1e6
 class SASUMO:
 
     def __init__(self, yaml_file_path: str) -> None:
+        # instantate the Settings4SASUMO class
         self._settings = Settings4SASUMO(yaml_file_path)
+        # save the settings to the new working folder
+        self._settings.sensitivity_analysis.working_root = self._create_working_folder()
+
+        self._settings.save_myself(self._settings.sensitivity_analysis.working_root)
+
         self._problem = self._compose_problem()
         self._samples = self._generate_samples()
 
@@ -87,12 +95,25 @@ class SASUMO:
         
         p = self._f(yaml_settings=deepcopy(self._settings), 
                     sample=self._samples[index],
-                    seed=self._generate_seed()
+                    seed=self._generate_seed(),
+                    sample_num=index
                     )
         p.run()
 
         return p
 
+    def _create_working_folder(self, ):
+        working_p = os.path.join(
+            path_constructor(
+                self._settings.sensitivity_analysis.working_root
+            ),
+                self._settings.metadata.name,
+                datetime.now().strftime("%Y_%m_%d-%I_%M_%S")
+            )
+
+        os.makedirs(working_p, exist_ok=True)
+
+        return working_p
     # def _create_individual_run_settings(self, index: int):
     #     sample = self._samples[index]
         

@@ -28,14 +28,15 @@ def _remover(d: dict, p: Hashable, default=None) -> Any:
         return default
 
 
-def create_folder(folder_root) -> str:
+def create_folder(folder_root: str, unique_id: str = None) -> str:
     folder = os.path.join(
-        folder_root, "-".join([str(datetime.now()).replace(":", "-"), uuid.uuid4().hex]))
+        folder_root, uuid.uuid4().hex if not unique_id else unique_id)
     os.makedirs(folder, exist_ok=True)
     return folder
 
 
 class _FlexibleDict:
+    
     def __init__(
         self,
     ) -> None:
@@ -206,19 +207,15 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
     It allows for logging and will save itself and the parameters inside of it to the "working folder"
     """
 
-    def __init__(self, yaml_settings: Settings4SASUMO, seed: int, sample: list) -> None:
+    def __init__(self, yaml_settings: Settings4SASUMO, seed: int, sample: list, sample_num: int = None) -> None:
         """ Handle creating the logger and the folder location """
 
         vars(self).update(vars(yaml_settings))
 
         self.WORKING_FOLDER = create_folder(
-            os.path.join(
-                path_constructor(
-                    self.sensitivity_analysis.working_root
-                    ), 
-                self.metadata.name
-                )
+            self.sensitivity_analysis.working_root, unique_id=sample_num or None
         )
+
 
         """ Create the Logger"""
         self.logger = logging.getLogger()
@@ -241,6 +238,8 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         """
 
         # self.compose(yaml_settings)
+
+    def _load_settings():
 
     def _create_log(self, ) -> None:
         fh = logging.FileHandler(os.path.join(

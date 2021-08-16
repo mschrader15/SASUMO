@@ -22,6 +22,9 @@ SensitivityAnalysis:
         function: functions.fleet_composition
         arguments: 
           - fleet_composition
+        output_name: route_file
+        passed_to_simulation: True
+
       
     CarFollowingParameters:
         
@@ -112,6 +115,8 @@ SensitivityAnalysis:
         arguments:
           - PersonalCar
           - Class8Truck
+        output_name: veh_distribution_file
+        passed_to_simulation: True
       
     ModelFidelity:
       variable_name: model_fidelity
@@ -144,7 +149,7 @@ SimulationCore:
   simulation_function:  
       module: runners.NoTraciSimulationMonteCarlo
       path: ${SIMULATION_ROOT}
-      arguments: 
+      arguments: # Not including the generator arguments marked for being passed to simulation
         settings: ${SIMULATION_ROOT}/sim-settings/just-sim/06_11_21.json
 
 FileManager:

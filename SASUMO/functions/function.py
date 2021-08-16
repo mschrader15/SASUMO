@@ -1,26 +1,28 @@
-import os
 import glob
+import importlib
+import os
 import subprocess
 import sys
-import importlib
-# from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
-
-import ray
 import uuid
-
-# import subprocess
-# from sumolib.vehicle import CreateMultiVehTypeDistributions
-
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
 
+import numpy as np
+import ray
 # internal imports
-from params import Settings4SASUMO
-from params import ProcessParameters
-from utils import FleetComposition
+from params import ProcessParameters, Settings4SASUMO
+from utils import FleetComposition, beefy_import
+
 from .output import TotalEmissionsHandler
-from utils import beefy_import
+
+# from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
+
+
+# import subprocess
+# from sumolib.vehicle import CreateMultiVehTypeDistributions
+
+
 
 
 def _stringify_list(_l: list) -> str:
@@ -29,12 +31,21 @@ def _stringify_list(_l: list) -> str:
 
 class BaseSUMOFunc:
 
-    def __init__(self, yaml_params: Settings4SASUMO, sample: dict, seed: int, *args, **kwargs):
+    def __init__(self, 
+                 yaml_params: Settings4SASUMO, 
+                 sample: np.array, 
+                 seed: int, 
+                 sample_num: int,  
+                 *args, 
+                 **kwargs):
 
-        self._params = ProcessParameters(yaml_settings=yaml_params, sample=sample, seed=seed)
+        self._params = ProcessParameters(yaml_settings=yaml_params, sample=sample, seed=seed, sample_num=sample_num)
         # self._folder = 
         # self._params.save()
         self._dump_parameters()
+
+        # TODO: create a prototype of a  
+        self._simulation: object = None
     
     def _dump_parameters(self, ):
         self._params.save(self._folder)
