@@ -86,50 +86,49 @@ class _FlexibleDict:
                 json.dumps(
                     {val: self[val]
                         for val in dir(self) if "__" not in val[:2]},
-                    default=lambda o: o.__dict__ if not isinstance(
-                        o, pendulum.DateTime) else str(o),
+                    default=lambda o: o.__dict__,
                     sort_keys=True,
                     indent=4,
                 )
             )
 
 
-class _VehAttributes:
+# class _VehAttributes:
 
-    def __init__(self, parameter_dict):
+#     def __init__(self, parameter_dict):
 
-        self.NAME: str = _remover(parameter_dict, 'name')
-        self.PARAMETERS: dict = _remover(parameter_dict, 'model-parameters')
-        self.SIZE: int = _remover(parameter_dict, 'size', default=100)
-        self.DECIMAL_PLACES: int = _remover(parameter_dict, 'size', default=3)
-        self.SEED: int = _remover(parameter_dict, 'size', default=3)
-        self._comp: float = 0
+#         self.NAME: str = _remover(parameter_dict, 'name')
+#         self.PARAMETERS: dict = _remover(parameter_dict, 'model-parameters')
+#         self.SIZE: int = _remover(parameter_dict, 'size', default=100)
+#         self.DECIMAL_PLACES: int = _remover(parameter_dict, 'size', default=3)
+#         self.SEED: int = _remover(parameter_dict, 'size', default=3)
+#         self._comp: float = 0
 
-    @property
-    def composition(self, ):
-        return self._comp
+#     @property
+#     def composition(self, ):
+#         return self._comp
 
-    @composition.setter
-    def composition(self, arg):
-        self._comp = arg
+#     @composition.setter
+#     def composition(self, arg):
+#         self._comp = arg
 
 
 # class 
 
-class _VehDist:
+# class _VehDist:
 
-    def __init__(self, parameters: dict) -> None:
+#     def __init__(self, parameters: dict) -> None:
 
-        self.VEH_DISTS: Dict[str, _VehAttributes] = {
-            key: _VehAttributes(value) for key, value in parameters.items()}
+#         self.VEH_DISTS: Dict[str, _VehAttributes] = {
+#             key: _VehAttributes(value) for key, value in parameters.items()}
 
-        """ Handling the Fleet Composition """
-        for distr_name, percent in parameters['fleet-composition']:
-            self.VEH_DISTS[distr_name].composition = percent
+#         """ Handling the Fleet Composition """
+#         for distr_name, percent in parameters['fleet-composition']:
+#             self.VEH_DISTS[distr_name].composition = percent
 
-    @property
-    def composition(self, ) -> Dict[str, float]:
-        return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()}
+#     @property
+#     def composition(self, ) -> Dict[str, float]:
+#         return {veh_attr.NAME: veh_attr.composition for _, veh_attr in self.VEH_DISTS.items()}
 
 
 class ReplayParameters(_FlexibleDict):
@@ -239,7 +238,7 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
 
         # self.compose(yaml_settings)
 
-    def _load_settings():
+    # def _load_settings():
 
     def _create_log(self, ) -> None:
         fh = logging.FileHandler(os.path.join(

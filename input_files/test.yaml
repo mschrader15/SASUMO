@@ -5,7 +5,7 @@ Metadata:
 
 SensitivityAnalysis:
 
-  working_root: ${SENSITIVITY_ANALYSIS_OUTPUT}
+  working_root: ${SENSITIVITY_ANALYSIS_OUTPUT} 
   num_runs: 10
   variables: &sa_variables
 
@@ -19,9 +19,10 @@ SensitivityAnalysis:
           min: 0.0
           max: 0.7
       generator: 
-        function: functions.fleet_composition
-        arguments: 
-          - fleet_composition
+        function: fleet_composition
+        arguments:
+          base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route-sampler.route.xml
+          fleet_compostion: fleet_composition
         output_name: route_file
         passed_to_simulation: True
 
@@ -62,6 +63,7 @@ SensitivityAnalysis:
         
         generator_arguments: &PersonalCarArguments         
           common_parameters: |
+            #TODO: These are wrong
             length;uniform(2,5)
             speedFactor;uniform(1.1,0.1)
             param; mass; normal(1190,300); [800, 1700]
@@ -111,10 +113,11 @@ SensitivityAnalysis:
               emissionClass;PHEMlight/HDV_TT_D_EU6
 
       generator:
-        function: functions.create_vehicle_distribution
+        function: create_vehicle_distribution
         arguments:
           - PersonalCar
           - Class8Truck
+          output_file_name: vehDist.in.xml
         output_name: veh_distribution_file
         passed_to_simulation: True
       
@@ -151,6 +154,11 @@ SimulationCore:
       path: ${SIMULATION_ROOT}
       arguments: # Not including the generator arguments marked for being passed to simulation
         settings: ${SIMULATION_ROOT}/sim-settings/just-sim/06_11_21.json
+        #TODO: Let "environmental variables" point to variable in the class
+        simulation_output_path: ${WORKING_ROOT}
+        emissions_file_name: __temp__emissions.out.xml
+
+
 
 FileManager:
   # I want to make moving the files explicitly defined by the user. 

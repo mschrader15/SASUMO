@@ -1,8 +1,10 @@
 import glob
 import importlib
 import os
+from pathlib import Path
 import subprocess
 import sys
+from typing import List
 import uuid
 from abc import ABCMeta
 from copy import deepcopy
@@ -12,6 +14,8 @@ import numpy as np
 import ray
 # internal imports
 from params import ProcessParameters, Settings4SASUMO
+# TODO: Remove protected "_" from this class name
+from params import _SensitivityAnalysisGroup
 from utils import FleetComposition, beefy_import
 
 from .output import TotalEmissionsHandler
@@ -22,7 +26,7 @@ from .output import TotalEmissionsHandler
 # import subprocess
 # from sumolib.vehicle import CreateMultiVehTypeDistributions
 
-
+TEMP_PATTERN = "__temp__"
 
 
 def _stringify_list(_l: list) -> str:
@@ -31,22 +35,23 @@ def _stringify_list(_l: list) -> str:
 
 class BaseSUMOFunc:
 
-    def __init__(self, 
-                 yaml_params: Settings4SASUMO, 
-                 sample: np.array, 
-                 seed: int, 
-                 sample_num: int,  
-                 *args, 
+    def __init__(self,
+                 yaml_params: Settings4SASUMO,
+                 sample: np.array,
+                 seed: int,
+                 sample_num: int,
+                 *args,
                  **kwargs):
 
-        self._params = ProcessParameters(yaml_settings=yaml_params, sample=sample, seed=seed, sample_num=sample_num)
-        # self._folder = 
+        self._params = ProcessParameters(
+            yaml_settings=yaml_params, sample=sample, seed=seed, sample_num=sample_num)
+        # self._folder =
         # self._params.save()
         self._dump_parameters()
 
-        # TODO: create a prototype of a  
+        # TODO: create a prototype of a
         self._simulation: object = None
-    
+
     def _dump_parameters(self, ):
         self._params.save(self._folder)
 
@@ -82,74 +87,85 @@ class BaseSUMOFunc:
 
     #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
-    def create_veh_distribution(self, ) -> None:
+    # TODO: Make this work with X number of distributions
+    def create_veh_distribution(self, output_file_name, args: List[_SensitivityAnalysisGroup]) -> None:
         """
         Creating the text input file
         """
-
         tmp_dist_input_file = os.path.join(
-            self._params.WORKING_FOLDER,  "_vehDist_temp.txt")
+            self._params.WORKING_FOLDER,  TEMP_PATTERN + "vehDist.txt"
+        )
 
-        veh_dist_file = self._params.set_var_inline(
-            self._params.create_working_path(self._params.VEH_DIST_FILE)
-            )
+        veh_dist_file = os.path.join(
+            self._params.WORKING_FOLDER,  TEMP_PATTERN + output_file_name
+        )
 
-        for _, vehType in self._params.VEH_DIST.PARAMETERS.items():
+        # veh_dist_file = self._params.set_var_inline(
+        #     self._params.create_working_path(self._params.VEH_DIST_FILE)
+        # )
 
+        for group in args:
+
+            text_parameters = group.generator_arguments
+
+            # compose the variables
+            vary_lines = []
+            for var in group.variables:
+                center = var.distribution.params.sa_value
+                width = var.distribution.params.width
+                vary_lines.append(
+                    f"{var.name};uniform({str(center - width / 2)},{str(center + width / 2)})")
+
+            text_parameters = "\n".join([text_parameters, *vary_lines])
+            
             with open(tmp_dist_input_file, 'w') as f:
                 """
                 Create a list of rows to write to the text file
                 """
-                for paramter, value in vehType:
-                    f.write(
-                        '; '.join([paramter, ] + value if isinstance(value, list) else [value]))
+                f.write(text_parameters)
 
-            subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py", 
+            subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py",
                             tmp_dist_input_file,
-                            '--name', vehType.NAME, 
+                            '--name', group.name,
                             '-o', veh_dist_file,
                             '--size', vehType.SIZE])
 
         os.remove(tmp_dist_input_file)
 
-    def implement_fleet_composition(self, ):
+    def fleet_composition(self, base_route_file, fleet_composition):
         """
         This function 
         """
 
-        f = FleetComposition(self._params.VEH_DIST.composition,
-                             seed=self._params.SEED, route_file=self._params.ROUTE_FILE)
+        output_file_path = os.path.join(self._params.WORKING_FOLDER,
+                                        TEMP_PATTERN + Path(base_route_file).name)
+
+        f = FleetComposition(fleet_composition,
+                             seed=self._params.SEED,
+                             route_file=base_route_file)
 
         f.replace_vehType(
-            output_path=self._params.set_var_inline(
-                self._params.create_working_path(self._params.ROUTE_FILE)
-            )
+            output_path=output_file_path
         )
+
+        return output_file_path
 
     def cleanup(self, ) -> None:
         # delete files
-        for f in [
-            self._params.EMISSIONS_FILE,
-            self._params.VEH_DIST_FILE,
-            self._params.ROUTE_FILE
-        ]:
+        for f in glob.glob(os.path.join(self._params.WORKING_FOLDER, TEMP_PATTERN.join(['*'] * 2))):
             os.remove(f)
 
-        # for f in glob.glob(f"{self._params.WORKING_FOLDER}/*.temp.*", ):
-        #     os.remove(f)
-        self._dump_parameters()    
-
-    # def prior_veh_dist()
 
 # @ray.remote
+
+
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
-    def __init__(self, yaml_settings, sample, seed, *args, **kwargs): 
-
+    def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
 
         super().__init__(yaml_settings, sample, seed, *args, **kwargs)
 
-        self._output_handler = TotalEmissionsHandler(params)
+        self._output_handler = TotalEmissionsHandler(self._params)
         self._simulation = beefy_import(self._params.simulation)
         # self._simulation = importlib.import_module(self._params.)
 
@@ -163,7 +179,17 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         This means that it should connect to a running matlab instance and pass said connection to the main function running the simulation 
         """
         pass
-    
+
+    def execute_generator_functions(self, ):
+        output_dict = {}
+        for var in self._params.sensitivity_analysis.variables:
+            self._params.log_info(f"Running {var.generator.function}")
+            f = getattr(self, var.generator.function)
+            out = f(**var.generator.arguments)
+            if var.generator.passed_to_simulation:
+                output_dict[var.generator.name]
+        return output_dict
+
     # @ray.method(num_returns=1)
     def run(self, ):
         """
@@ -172,13 +198,15 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
             2. generates the input files for the varying parameters
             2. runs the specific runner. It should have a "main" method. 
                I can create an abstract base class later
-            3. 
         """
 
-        self.create_folder()
+        self.execute_generator_functions()
+
         self.create_veh_distribution()
-        self.implement_fleet_composition()
+        # self.implement_fleet_composition()
         self._handle_matlab()
+
+        self._simulation = self._simulation()
 
         self._simulation.main()
 

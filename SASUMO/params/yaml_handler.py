@@ -4,6 +4,9 @@ import yaml
 from dataclasses import dataclass
 
 
+#TODO: This whole file is a dumpster fire of abstraction and confusion
+
+
 @dataclass
 class _Dist:
 
@@ -73,12 +76,21 @@ class _DistributionSettings:
     def transform(self, value: float) -> Any:
         return self.params.transform(value) 
 
+    @property
+    def sa_value(self, ) -> Any:
+        return self.params.sa_value
+
+@dataclass
+class _GeneratorArguments:
+    common_paramters: Any
 
 @dataclass
 class _Generator:
 
     function: str
-    arguments: Tuple
+    arguments: dict
+    output_name: str
+    passed_to_simulation: bool
 
 
 class _SensitivityAnalysisVariable:
@@ -87,10 +99,17 @@ class _SensitivityAnalysisVariable:
         self.name: str = "_".join([name, variable_name])
         self.type: str = type
         self.distribution: _DistributionSettings = _DistributionSettings(type=distribution['type'], params=distribution['params'])
-        self.generator: Union[_Generator, None] = _Generator(function=generator['function'], arguments=self) if generator else None    
+
+        # dealing with the wack generator class
+        if generator:
+            generator['arguments'] = self
+            self.generator = _Generator(**generator)
+        else:
+            self.generator: Union[_Generator, None] = None    
 
     def transform(self, val):
         self.distribution.transform(val)
+
 
 class _SensitivityAnalysisGroup:
 
@@ -104,6 +123,10 @@ class _SensitivityAnalysisGroup:
         self.name = name
         self.variables: List[_SensitivityAnalysisVariable] = kwargs
         self._generator: _Generator = None 
+        if 'generator_arguments' in kwargs.keys():
+            self.generator_arguments: Union[None, _GeneratorArguments] = _GeneratorArguments(**kwargs['generator_arguments']) 
+        else:
+            self.generator_arguments: Union[None, _GeneratorArguments] = None
 
     @property
     def variables(self, ):
@@ -143,7 +166,8 @@ class _SensitivityAnalysisGroup:
     @generator.setter
     def generator(self, arg):
         arguments = [v for _arg in arg['arguments'] for v in self._variables if _arg in v.name]
-        self._generator = _Generator(function=arg['function'], arguments=arguments)
+        arg['arguments'] = arguments
+        self._generator = _Generator(**arg)
 
 
 @dataclass
