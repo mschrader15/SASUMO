@@ -244,6 +244,16 @@ class SensitivityAnalysisGroup:
 class _SensitivityAnalysisOutput:
 
     module: str
+    arguments: dict
+    
+    @property
+    def arguments(self, ) -> _ArgumentHolder:
+        # return self._args
+        return self._args
+    
+    @arguments.setter
+    def arguments(self, val: dict):
+        self._args = _ArgumentHolder(**val)
 
 
 class _SensitivityAnalysisSettings:
@@ -251,9 +261,12 @@ class _SensitivityAnalysisSettings:
     def __init__(self, d: dict) -> None:
         self._variables: List[SensitivityAnalysisGroup] = self._compose_variables(
             d['variables'])
+
         self.names: str = [v.name for v in self.variables]
+
         self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(
-            **d['Output'])
+            **d['Output']
+            )
         self.num_runs: int = d['num_runs']
         self.working_root: str = d['working_root']
 
@@ -387,7 +400,9 @@ class Settings4SASUMO(_Settings):
 
     def save_myself(self, file_location: str):
         """
-        Copy the input file to the location that the simulation is ran from. Also refered to as the "Working Root"
+        Copy the input file to the location that the simulation is ran from. 
+        
+        Also refered to as the "Working Root"
 
         Args:
             file_location (str): [description]

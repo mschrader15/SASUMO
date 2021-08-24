@@ -69,7 +69,7 @@ class BaseSUMOFunc:
     
     def _create_output_handler(self, ):
         mod = beefy_import(self._params._sensitivity_analysis.output.module)
-        return mod(**self._params._sensitivity_analysis.output.arguments)
+        return mod(cwd=self._params.WORKING_FOLDER, **self._params._sensitivity_analysis.output.arguments)
 
 
     @property

@@ -139,11 +139,12 @@ SensitivityAnalysis:
   Output: 
     module: output.TotalEmissionsHandler
     arguments:
-      emissions_xml: ${cwd}/__temp__emissions.out.xml
-      sa_parameters: *sa_variables
-      start_time:    
-    
+      kwargs:
+        emissions_xml: ${cwd}/__temp__emissions.out.xml
+        output_time_filter_lower: 3600
+        output_time_filter_upper: 7200
 
+    
 SimulationCore:
  
   cpu_cores: 60 

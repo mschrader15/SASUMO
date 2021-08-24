@@ -35,6 +35,22 @@ def create_folder(folder_root: str, unique_id: str = None) -> str:
     return folder
 
 
+# def _parse_replace_file_paths(cls: object, cwd: str) -> None:
+#     if isinstance(cls, list):
+#         for item in cls:
+#             _parse_replace_file_paths(item, cwd)
+#     else:
+#         for key, item in vars(cls).items():
+#             # this is hacky but seems to work ??
+#             if '__' not in key[:2]:
+#                 if isinstance(item, str):
+#                     item = path_constructor(item, cwd)
+#                 else:
+#                     try:
+#                         _parse_replace_file_paths(item, cwd)
+#                     except Exception as e:
+#                         pass
+
 class _FlexibleDict:
     
     def __init__(
@@ -45,7 +61,7 @@ class _FlexibleDict:
 
     def compose(self, _dict: dict) -> object:
         for key, value in _dict.items():
-            self[key.upper()] = (
+            self[key] = (
                 _FlexibleDict().compose(value) if isinstance(value, dict) else value
             )
         return self
@@ -66,7 +82,7 @@ class _FlexibleDict:
         self,
         name: str,
     ) -> Any:
-        return getattr(self, name.upper(), None)
+        return getattr(self, name, None)
 
     def __setattr__(self, name: str, value: Any) -> None:
         self.__dict__[name] = value
@@ -212,11 +228,11 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         vars(self).update(vars(yaml_settings))
 
 
-
         self.WORKING_FOLDER = create_folder(
             self.sensitivity_analysis.working_root, unique_id=f"sample_{sample_num}" or None
         )
 
+        _parse_replace_file_paths(self, self.WORKING_FOLDER)
 
         """ Create the Logger"""
         self.logger = logging.getLogger()
@@ -277,6 +293,19 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
                 os.path.join(self.WORKING_FOLDER, 'settings.json')
             )
 
+
+    def handle_path(self, arg: Any) -> Any:
+        if isinstance(arg, str):
+            return path_constructor(arg, self.WORKING_FOLDER)
+        return arg
+   
+    # @staticmethod
+    # def _path_replace(cls, ) -> None:
+    #     for item in cls:
+    #         if isinstance(item, object):
+    #             _path_replace()
+
+    
         # [
         #     self.sensitivity_analysis.variables[
         #         i

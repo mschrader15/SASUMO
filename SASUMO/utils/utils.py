@@ -10,11 +10,12 @@ def path_constructor(path: str, cwd: str = None) -> str:
     ''' Extract the matched value, expand env variable, and replace the match '''
     path_matcher = re.compile(r'\$\{([^}^{]+)\}')
     match = path_matcher.match(path)
-    env_var = match.group()[2:-1]
-    if env_var == 'cwd':
-        return cwd + path[match.end():]
-    return os.environ.get(env_var) + path[match.end():]
-
+    if match:
+        env_var = match.group()[2:-1]
+        if env_var == 'cwd':
+            return cwd + path[match.end():]
+        return os.environ.get(env_var) + path[match.end():]
+    return path
 
 def beefy_import(path: str) -> object:
     split_mod = path.split('.')
