@@ -153,7 +153,7 @@ class ReplayParameters(_FlexibleDict):
 
         """ Store the location of SUMO """
         self.SUMO_HOME = SUMO_HOME
-        self.SEED = seed   # TODO: figure out where the random seed is set
+        self.SEED = seed   
         params = self._load_json(parameter_json)
 
         """ Vehicle Distribution Parameters"""
@@ -211,8 +211,10 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
 
         vars(self).update(vars(yaml_settings))
 
+
+
         self.WORKING_FOLDER = create_folder(
-            self.sensitivity_analysis.working_root, unique_id=sample_num or None
+            self.sensitivity_analysis.working_root, unique_id=f"sample_{sample_num}" or None
         )
 
 
@@ -223,7 +225,8 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
 
         """ Store the location of SUMO """
         self.SUMO_HOME = SUMO_HOME
-        self.SEED = seed   # TODO: figure out where the random seed is set
+        self.SEED = seed
+        
         # params = self._load_json(parameter_json)
 
         """ Process the Sample """

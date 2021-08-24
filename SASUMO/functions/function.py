@@ -14,8 +14,7 @@ import numpy as np
 import ray
 # internal imports
 from params import ProcessParameters, Settings4SASUMO
-# TODO: Remove protected "_" from this class name
-from params import _SensitivityAnalysisGroup
+from params import SensitivityAnalysisGroup
 from utils import FleetComposition, beefy_import
 
 from .output import TotalEmissionsHandler
@@ -49,11 +48,13 @@ class BaseSUMOFunc:
         # self._params.save()
         self._dump_parameters()
 
-        # TODO: create a prototype of a
+        # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
     def _dump_parameters(self, ):
-        self._params.save(self._folder)
+        self._params.save(
+            os.path.join(self._params.WORKING_FOLDER, 'run_params.json')
+        )
 
     # def run(self, *args, **kwargs):
     #     # dump the parameters at run time
@@ -65,6 +66,11 @@ class BaseSUMOFunc:
     # def _run(self, ):
     #     pass
     #     # return folder
+    
+    def _create_output_handler(self, ):
+        mod = beefy_import(self._params._sensitivity_analysis.output.module)
+        return mod(**self._params._sensitivity_analysis.output.arguments)
+
 
     @property
     def output(self, ) -> float:
@@ -87,8 +93,7 @@ class BaseSUMOFunc:
 
     #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
-    # TODO: Make this work with X number of distributions
-    def create_veh_distribution(self, output_file_name, args: List[_SensitivityAnalysisGroup]) -> None:
+    def create_veh_distribution(self, output_file_name, distribution_size, args: List[SensitivityAnalysisGroup]) -> None:
         """
         Creating the text input file
         """
@@ -128,7 +133,7 @@ class BaseSUMOFunc:
                             tmp_dist_input_file,
                             '--name', group.name,
                             '-o', veh_dist_file,
-                            '--size', vehType.SIZE])
+                            '--size', distribution_size])
 
         os.remove(tmp_dist_input_file)
 
@@ -200,14 +205,16 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
                I can create an abstract base class later
         """
 
-        self.execute_generator_functions()
+        simulation_kwargs = self.execute_generator_functions()
 
-        self.create_veh_distribution()
-        # self.implement_fleet_composition()
-        self._handle_matlab()
+        # self.create_veh_distribution()
+        # # self.implement_fleet_composition()
+        # self._handle_matlab()
 
-        self._simulation = self._simulation()
+        # TODO: turn this into a function and pass the correct parameters given YAML settings
+        self._simulation = self._simulation(**simulation_kwargs)
 
+        # run the simulation
         self._simulation.main()
 
         return self.output

@@ -1,10 +1,28 @@
-from typing import Any, Generator, List, Tuple, Union
+import os
 import shutil
-import yaml
 from dataclasses import dataclass
+from typing import Any, Generator, List, Tuple, Union
+
+import yaml
+
+# from utils import path_constructor
 
 
-#TODO: This whole file is a dumpster fire of abstraction and confusion
+# class PathHandler:
+
+#     def __init__(self, base_path: str) -> None:
+
+#         self._cwd = base_path
+    
+#     def _
+
+#     def handle_path(self, arg: Any) -> Any:
+#         if isinstance(arg, str):
+#             return path_constructor(arg, self._cwd)
+#         return arg
+
+#     def update_cwd(self, base_path: str) -> None:
+#         self._cwd = base_path
 
 
 @dataclass
@@ -12,15 +30,15 @@ class _Dist:
 
     def transform(self, value: float) -> Any:
         self.sa_value = self._transform(value)
-        # return 
+
 
     def _transform(self, value: float) -> Any:
-        return value 
+        return value
 
     @property
     def sa_value(self, ) -> Any:
         return self._sa_value
-    
+
     @sa_value.setter
     def sa_value(self, val: Any) -> None:
         self._sa_value = val
@@ -28,23 +46,23 @@ class _Dist:
 
 @dataclass
 class _UniformDist(_Dist):
+
     min: float
     max: float
     width: float = None
 
     def _transform(self, value: float) -> Any:
         return value
-    
+
     @property
     def bounds(self, ) -> Tuple[float]:
         return self.min, self.max
 
-    # def 
 
 @dataclass
 class _UniformSample(_Dist):
     categorical: list
-    
+
     @property
     def bounds(self, ) -> Tuple[float]:
         return 0, len(self.categorical)
@@ -52,9 +70,10 @@ class _UniformSample(_Dist):
     def _transform(self, value: float) -> Any:
         return self.categorical[int(value)]
 
+
 @dataclass
 class _DistributionSettings:
-    
+
     type: str
     params: Union[_UniformDist, _UniformSample]
 
@@ -68,29 +87,54 @@ class _DistributionSettings:
             'uniform sample': _UniformSample,
             'uniform': _UniformDist
         }[self.type](**kwargs)
-    
+
     @property
     def bounds(self, ) -> Tuple[float, float]:
         return self.params.bounds
 
     def transform(self, value: float) -> Any:
-        return self.params.transform(value) 
+        return self.params.transform(value)
 
     @property
     def sa_value(self, ) -> Any:
         return self.params.sa_value
 
+
 @dataclass
 class _GeneratorArguments:
-    common_paramters: Any
+    common_parameters: Any
+
+
+@dataclass
+class _ArgumentHolder:
+    args: list = None
+    kwargs: dict = None
+
 
 @dataclass
 class _Generator:
 
     function: str
-    arguments: dict
     output_name: str
     passed_to_simulation: bool
+    arguments: dict
+
+    @property
+    def arguments(self, ) -> _ArgumentHolder:
+        # return self._args
+        return self._args
+
+    @arguments.setter
+    def arguments(self, val: dict):
+        self._args = _ArgumentHolder(**val)
+
+    @property
+    def args(self, ) -> list:
+        return self._args.args
+
+    @property
+    def kwargs(self, ) -> dict:
+        return self._args.kwargs
 
 
 class _SensitivityAnalysisVariable:
@@ -98,40 +142,73 @@ class _SensitivityAnalysisVariable:
     def __init__(self, name, variable_name, distribution, type, generator=None) -> None:
         self.name: str = "_".join([name, variable_name])
         self.type: str = type
-        self.distribution: _DistributionSettings = _DistributionSettings(type=distribution['type'], params=distribution['params'])
+        self.distribution: _DistributionSettings = _DistributionSettings(
+            type=distribution['type'], params=distribution['params'])
 
-        # dealing with the wack generator class
-        if generator:
-            generator['arguments'] = self
-            self.generator = _Generator(**generator)
-        else:
-            self.generator: Union[_Generator, None] = None    
 
     def transform(self, val):
         self.distribution.transform(val)
 
+    def _find_self(self, generator: dict):
+        for key, value in generator.items():
+            if isinstance(value, dict):
+                self._find_self(value)
+            elif self._check_name(value):
+                generator[key] = self
 
-class _SensitivityAnalysisGroup:
+    def _check_name(self, value: str) -> bool:
+        if isinstance(value, str):
+            return value in self.name
+        return False
+
+
+class SensitivityAnalysisGroup:
 
     """ Everything is at least a group. It becomes a variable if the correct parameters are present"""
 
     def __init__(self, name, **kwargs) -> None:
-            
+
         # self.generator = generator
         self._variables = []
 
         self.name = name
         self.variables: List[_SensitivityAnalysisVariable] = kwargs
-        self._generator: _Generator = None 
+
+        self._generator: Union[_Generator,
+                               None] = self._create_generator(**kwargs)
+
+        # try to create the generator
         if 'generator_arguments' in kwargs.keys():
-            self.generator_arguments: Union[None, _GeneratorArguments] = _GeneratorArguments(**kwargs['generator_arguments']) 
+            self.generator_arguments: Union[None, _GeneratorArguments] = _GeneratorArguments(
+                **kwargs['generator_arguments'])
         else:
             self.generator_arguments: Union[None, _GeneratorArguments] = None
+
+    def _create_generator(self, **kwargs) -> Union[_Generator, None]:
+        for key, value in kwargs.items():
+            if key == 'generator':
+                for i_key, i_value in value.items():
+                    if i_key == "arguments":
+                        if 'args' in i_value.keys():
+                            for i, arg in enumerate(i_value['args']):
+                                i_value['args'][i] = self._replace_name_with_reference(
+                                    arg)
+                        if 'kwargs' in i_value.keys():
+                            for ii_key, ii_value in i_value['kwargs'].items():
+                                i_value['kwargs'][ii_key] = self._replace_name_with_reference(
+                                    ii_value)
+                return _Generator(**value)
+
+    def _replace_name_with_reference(self, name: str) -> object:
+        for var in self._variables:
+            if isinstance(name, str) and name in var.name:
+                return var
+        return name
 
     @property
     def variables(self, ):
         pass
-        
+
     @variables.setter
     def variables(self, d: dict):
         try:
@@ -140,20 +217,19 @@ class _SensitivityAnalysisGroup:
             )
         except TypeError:
             for name, items in d.items():
-                if name == 'generator':
-                    self.generator = items
-                    next
-                if isinstance(items, dict): 
+                if name != 'generator' and isinstance(items, dict):
                     if 'variable_name' in items.keys():
-                        self._variables.append(_SensitivityAnalysisVariable(name=self.name, **items))
+                        self._variables.append(
+                            _SensitivityAnalysisVariable(name=self.name, **items))
                     else:
-                        self._variables.append(_SensitivityAnalysisGroup(name=name, **items))        
+                        self._variables.append(
+                            SensitivityAnalysisGroup(name=name, **items))
 
     @variables.getter
     def variables(self, ):
         l = []
         for var_obj in self._variables:
-            if isinstance(var_obj, _SensitivityAnalysisVariable): 
+            if isinstance(var_obj, _SensitivityAnalysisVariable):
                 l.append(var_obj)
             else:
                 l.extend(var_obj.variables)
@@ -162,40 +238,34 @@ class _SensitivityAnalysisGroup:
     @property
     def generator(self, ):
         return self._generator
-    
-    @generator.setter
-    def generator(self, arg):
-        arguments = [v for _arg in arg['arguments'] for v in self._variables if _arg in v.name]
-        arg['arguments'] = arguments
-        self._generator = _Generator(**arg)
 
 
 @dataclass
 class _SensitivityAnalysisOutput:
-    
+
     module: str
 
 
 class _SensitivityAnalysisSettings:
 
     def __init__(self, d: dict) -> None:
-        self._variables: List[_SensitivityAnalysisGroup] = self._compose_variables(d['variables'])
+        self._variables: List[SensitivityAnalysisGroup] = self._compose_variables(
+            d['variables'])
         self.names: str = [v.name for v in self.variables]
-        self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(**d['Output']) 
+        self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(
+            **d['Output'])
         self.num_runs: int = d['num_runs']
         self.working_root: str = d['working_root']
-        
+
     def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
         for name, variable_d in d.items():
             if isinstance(variable_d, dict):
                 # if 'variable_name' in variable_d.keys():
                 l.append(
-                    _SensitivityAnalysisGroup(name, **variable_d)
-                    )
-                # else:
-                #     self._compose_variables(variable_d, l)
+                    SensitivityAnalysisGroup(name, **variable_d)
+                )
         return l
-    
+
     @property
     def variable_num(self, ) -> int:
         return len(self.variables)
@@ -204,28 +274,28 @@ class _SensitivityAnalysisSettings:
     def variables(self, ) -> List[_SensitivityAnalysisVariable]:
         l = []
         for var in self._variables:
-            if isinstance(var, _SensitivityAnalysisGroup):
+            if isinstance(var, SensitivityAnalysisGroup):
                 l.extend(var.variables)
             else:
                 l.append(var)
         return l
-                
+
 
 @dataclass
 class _FunctionArguments:
-    settings: str = None
+    kwargs: dict = None
 
 
 @dataclass
 class _SimFunctionCore:
     module: str
-    arguments: _FunctionArguments = None 
-    path: str = None 
+    arguments: _FunctionArguments = None
+    path: str = None
 
     @property
     def arguments(self, ) -> _FunctionArguments:
         return self._arguments
-    
+
     @arguments.setter
     def arguments(self, kwargs: dict):
         self._arguments = _FunctionArguments(**kwargs) if kwargs else None
@@ -235,14 +305,14 @@ class _SimFunctionCore:
 class _SimulationCore:
     preprocessing: str
     cpu_cores: int
-    manager_function: _SimFunctionCore 
+    manager_function: _SimFunctionCore
     simulation_function: _SimFunctionCore
     # arguments: str
 
     @property
     def manager_function(self, ) -> _SimFunctionCore:
         return self._manager_function
-    
+
     @manager_function.setter
     def manager_function(self, kwargs: dict):
         self._manager_function = _SimFunctionCore(**kwargs)
@@ -250,7 +320,7 @@ class _SimulationCore:
     @property
     def simulation_function(self, ) -> _SimFunctionCore:
         return self._simulation_function
-    
+
     @simulation_function.setter
     def simulation_function(self, kwargs: dict):
         self._simulation_function = _SimFunctionCore(**kwargs)
@@ -268,11 +338,11 @@ class _Settings:
     @property
     def metadata(self, ) -> _Metadata:
         return self._metadata
-    
+
     @metadata.setter
     def metadata(self, d: dict) -> None:
-        self._metadata = _Metadata(**d) 
-    
+        self._metadata = _Metadata(**d)
+
     @property
     def sensitivity_analysis(self, ) -> _SensitivityAnalysisSettings:
         return self._sensitivity_analysis
@@ -288,7 +358,7 @@ class _Settings:
     @simulation_core.setter
     def simulation_core(self,  d: dict) -> dict:
         self._simulation_core = _SimulationCore(**d)
-    
+
     @property
     def file_manager(self, ) -> dict:
         return self._simulation_core
@@ -296,12 +366,12 @@ class _Settings:
     @file_manager.setter
     def file_manager(self,  d: dict) -> dict:
         self._file_manager = d
-    
+
 
 class Settings4SASUMO(_Settings):
 
     def __init__(self, file_path: str) -> None:
-        
+
         self._yaml_settings_path = file_path
 
         with open(file_path, 'r') as f:
@@ -309,7 +379,7 @@ class Settings4SASUMO(_Settings):
 
     # def __getattribute__(self, name: str) -> Any:
     #     return self._settings[name]
-        
+
     def _unpack_settings(self, d):
         self.metadata = d['Metadata']
         self.sensitivity_analysis = d['SensitivityAnalysis']
@@ -322,14 +392,17 @@ class Settings4SASUMO(_Settings):
         Args:
             file_location (str): [description]
         """
-        file_name = os.path.split(self._yaml_settings_path)
-        shutil.copy(self._f, os.path.join(file_location, file_name))
-    
+        file_name = os.path.split(self._yaml_settings_path)[1]
+        # TODO: move the file correctly
+        shutil.copy(self._yaml_settings_path, os.path.join(file_location, file_name))
+
     # def _read
 
+
 if __name__ == "__main__":
-    
+
     import os
     ROOT = os.path.dirname(os.path.abspath(__file__))
-    s = Settings4SASUMO(os.path.join(ROOT, '../../', 'input_files', 'test.yaml'))
+    s = Settings4SASUMO(os.path.join(
+        ROOT, '../../', 'input_files', 'test.yaml'))
     print(s.simulation_core)

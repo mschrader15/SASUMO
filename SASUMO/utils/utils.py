@@ -6,11 +6,13 @@ from xml.dom import minidom
 import re
 
 
-def path_constructor(path: str) -> str:
+def path_constructor(path: str, cwd: str = None) -> str:
     ''' Extract the matched value, expand env variable, and replace the match '''
     path_matcher = re.compile(r'\$\{([^}^{]+)\}')
     match = path_matcher.match(path)
     env_var = match.group()[2:-1]
+    if env_var == 'cwd':
+        return cwd + path[match.end():]
     return os.environ.get(env_var) + path[match.end():]
 
 

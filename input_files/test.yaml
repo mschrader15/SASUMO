@@ -18,11 +18,13 @@ SensitivityAnalysis:
         params:
           min: 0.0
           max: 0.7
+      
       generator: 
         function: fleet_composition
         arguments:
-          base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route-sampler.route.xml
-          fleet_compostion: fleet_composition
+          kwargs:
+            base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route-sampler.route.xml
+            fleet_compostion: fleet_composition
         output_name: route_file
         passed_to_simulation: True
 
@@ -115,9 +117,12 @@ SensitivityAnalysis:
       generator:
         function: create_vehicle_distribution
         arguments:
-          - PersonalCar
-          - Class8Truck
-          output_file_name: vehDist.in.xml
+          args:
+            - PersonalCar
+            - Class8Truck
+          kwargs:
+            output_file_name: vehDist.in.xml
+            distribution_size: 100
         output_name: veh_distribution_file
         passed_to_simulation: True
       
@@ -133,10 +138,10 @@ SensitivityAnalysis:
   
   Output: 
     module: output.TotalEmissionsHandler
-    # arguments:
-    #   - None
-    #   sa_parameters: *sa_variables
-    #   start_time:    
+    arguments:
+      emissions_xml: ${cwd}/__temp__emissions.out.xml
+      sa_parameters: *sa_variables
+      start_time:    
     
 
 SimulationCore:
@@ -153,10 +158,11 @@ SimulationCore:
       module: runners.NoTraciSimulationMonteCarlo
       path: ${SIMULATION_ROOT}
       arguments: # Not including the generator arguments marked for being passed to simulation
-        settings: ${SIMULATION_ROOT}/sim-settings/just-sim/06_11_21.json
-        #TODO: Let "environmental variables" point to variable in the class
-        simulation_output_path: ${WORKING_ROOT}
-        emissions_file_name: __temp__emissions.out.xml
+        kwargs:
+          settings: ${SIMULATION_ROOT}/sim-settings/just-sim/06_11_21.json
+          #TODO: Let "environmental variables" point to variable in the class
+          simulation_output_path: ${cwd}
+          emissions_file_name: __temp__emissions.out.xml
 
 
 

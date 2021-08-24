@@ -17,9 +17,9 @@ class _OutputHandler(ABCMeta):
 
 class TotalEmissionsHandler(_OutputHandler):
     
-    def __init__(self, params: dict) -> None:
+    def __init__(self, emissions_xml) -> None:
         super(_OutputHandler, self).__init__()
-        self._params = params
+        self._emissions_xml = params
 
     def _load_xml(self):
         yield from on_disk_xml_parser(self._params['emissions_output'], file_type="emissions")
