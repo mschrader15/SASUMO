@@ -130,11 +130,11 @@ class _Generator:
 
     @property
     def args(self, ) -> list:
-        return self._args.args
+        return self._args.args or []
 
     @property
     def kwargs(self, ) -> dict:
-        return self._args.kwargs
+        return self._args.kwargs or {}
 
 
 class _SensitivityAnalysisVariable:
@@ -292,6 +292,15 @@ class _SensitivityAnalysisSettings:
             else:
                 l.append(var)
         return l
+
+    @property
+    def generators(self, ) -> List[_Generator]:
+        return [
+            var.generator
+            for var in self._variables
+            if isinstance(var, SensitivityAnalysisGroup) and var.generator
+        ]
+
 
 
 @dataclass

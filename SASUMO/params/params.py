@@ -97,15 +97,22 @@ class _FlexibleDict:
         Args:
             location (str): where to save the file too
         """
+        def default(o):
+            try:
+                return o.__dict__
+            except Exception:
+                return {}
+
         with open(location, "w") as f:
-            f.write(
-                json.dumps(
+            s = json.dumps(
                     {val: self[val]
                         for val in dir(self) if "__" not in val[:2]},
-                    default=lambda o: o.__dict__,
+                    default=default,
                     sort_keys=True,
                     indent=4,
                 )
+            f.write(
+                s
             )
 
 
@@ -232,7 +239,7 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
             self.sensitivity_analysis.working_root, unique_id=f"sample_{sample_num}" or None
         )
 
-        _parse_replace_file_paths(self, self.WORKING_FOLDER)
+        # _parse_replace_file_paths(self, self.WORKING_FOLDER)
 
         """ Create the Logger"""
         self.logger = logging.getLogger()

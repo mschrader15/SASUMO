@@ -48,6 +48,8 @@ class BaseSUMOFunc:
         # self._params.save()
         self._dump_parameters()
 
+        self._output_handler = self._create_output_handler()
+
         # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
@@ -69,8 +71,16 @@ class BaseSUMOFunc:
     
     def _create_output_handler(self, ):
         mod = beefy_import(self._params._sensitivity_analysis.output.module)
-        return mod(cwd=self._params.WORKING_FOLDER, **self._params._sensitivity_analysis.output.arguments)
+        return mod(cwd=self._params.WORKING_FOLDER, **self._params._sensitivity_analysis.output.arguments.kwargs)
 
+    def _create_simulation(self, **kwargs):
+        mod = beefy_import(self._params.simulation_core.simulation_function.module)
+
+        return mod(
+            *self._params.simulation_core.simulation_function.arguments.args, 
+            **self._params.simulation_core.simulation_function.arguments.kwargs,
+            **kwargs
+        )
 
     @property
     def output(self, ) -> float:
@@ -139,13 +149,18 @@ class BaseSUMOFunc:
 
     def fleet_composition(self, base_route_file, fleet_composition):
         """
-        This function 
+        This function
         """
 
         output_file_path = os.path.join(self._params.WORKING_FOLDER,
                                         TEMP_PATTERN + Path(base_route_file).name)
 
-        f = FleetComposition(fleet_composition,
+        fleet = {
+            'Class8Truck': fleet_composition.distribution.sa_value,
+            'PersonalCar': 1 - fleet_composition.distribution.sa_value
+        }
+
+        f = FleetComposition(fleet,
                              seed=self._params.SEED,
                              route_file=base_route_file)
 
@@ -170,8 +185,8 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
         super().__init__(yaml_settings, sample, seed, *args, **kwargs)
 
-        self._output_handler = TotalEmissionsHandler(self._params)
-        self._simulation = beefy_import(self._params.simulation)
+        # self._output_handler = TotalEmissionsHandler(self._params)
+        # self._simulation = beefy_import(self._params.simulation)
         # self._simulation = importlib.import_module(self._params.)
 
     @property
@@ -187,12 +202,12 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def execute_generator_functions(self, ):
         output_dict = {}
-        for var in self._params.sensitivity_analysis.variables:
-            self._params.log_info(f"Running {var.generator.function}")
-            f = getattr(self, var.generator.function)
-            out = f(**var.generator.arguments)
-            if var.generator.passed_to_simulation:
-                output_dict[var.generator.name]
+        for gen in self._params.sensitivity_analysis.generators:
+            self._params.log_info(f"Running {gen.function}")
+            f = getattr(self, gen.function)
+            out = f(*gen.arguments.args or [], **gen.arguments.kwargs)
+            if gen.passed_to_simulation:
+                output_dict[gen.output_name] = out
         return output_dict
 
     # @ray.method(num_returns=1)
@@ -212,7 +227,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         # self._handle_matlab()
 
         # TODO: turn this into a function and pass the correct parameters given YAML settings
-        self._simulation = self._simulation(**simulation_kwargs)
+        self._simulation = self._create_simulation(**simulation_kwargs)
 
         # run the simulation
         self._simulation.main()

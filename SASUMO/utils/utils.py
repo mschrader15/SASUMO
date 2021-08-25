@@ -72,7 +72,7 @@ def on_disk_xml_parser(xml_path: str, file_type: str) -> list:
 
 class FleetComposition:
 
-    def __init__(self, distribution_dictionary: dict, seed: int, route_file_path: str):
+    def __init__(self, distribution_dictionary: dict, seed: int, route_file: str):
 
         import random
 
@@ -80,10 +80,11 @@ class FleetComposition:
         self._random.seed(seed)
 
         self._dist = []
+        
         for name, percentage in distribution_dictionary.items():
             self._dist.extend(int(100 * percentage) * [name])
 
-        self._r = route_file_path
+        self._r = route_file
 
     def _sample(self, ):
 

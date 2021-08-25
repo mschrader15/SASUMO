@@ -24,7 +24,7 @@ SensitivityAnalysis:
         arguments:
           kwargs:
             base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route-sampler.route.xml
-            fleet_compostion: fleet_composition
+            fleet_composition: fleet_composition
         output_name: route_file
         passed_to_simulation: True
 
@@ -137,12 +137,13 @@ SensitivityAnalysis:
             - matlab
   
   Output: 
-    module: output.TotalEmissionsHandler
+    module: functions.output.TotalEmissionsHandler
     arguments:
       kwargs:
         emissions_xml: ${cwd}/__temp__emissions.out.xml
         output_time_filter_lower: 3600
         output_time_filter_upper: 7200
+        sim_step: 0.1
 
     
 SimulationCore:

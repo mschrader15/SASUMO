@@ -2,7 +2,11 @@ from abc import ABCMeta
 from utils import on_disk_xml_parser, path_constructor
 
 
-class _OutputHandler(ABCMeta):
+class _OutputHandler:
+
+    # def __new__(cls, *args, **kwargs):
+    #     return super(_OutputHandler, cls).__new__(cls, *args, **kwargs)
+
     
     def __init__(self, *args, **kwargs) -> None:
         pass
