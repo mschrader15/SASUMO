@@ -141,6 +141,7 @@ class _SensitivityAnalysisVariable:
 
     def __init__(self, name, variable_name, distribution, type, generator=None) -> None:
         self.name: str = "_".join([name, variable_name])
+        self.variable_name = variable_name
         self.type: str = type
         self.distribution: _DistributionSettings = _DistributionSettings(
             type=distribution['type'], params=distribution['params'])
@@ -301,26 +302,21 @@ class _SensitivityAnalysisSettings:
             if isinstance(var, SensitivityAnalysisGroup) and var.generator
         ]
 
-
-
-@dataclass
-class _FunctionArguments:
-    kwargs: dict = None
-
+    
 
 @dataclass
 class _SimFunctionCore:
     module: str
-    arguments: _FunctionArguments = None
+    arguments: _ArgumentHolder = None
     path: str = None
 
     @property
-    def arguments(self, ) -> _FunctionArguments:
+    def arguments(self, ) -> _ArgumentHolder:
         return self._arguments
 
     @arguments.setter
     def arguments(self, kwargs: dict):
-        self._arguments = _FunctionArguments(**kwargs) if kwargs else None
+        self._arguments = _ArgumentHolder(**kwargs) if kwargs else None
 
 
 @dataclass

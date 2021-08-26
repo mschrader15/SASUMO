@@ -92,6 +92,7 @@ class FleetComposition:
 
     def replace_vehType(self, output_path=None):
 
+
         t = minidom.parse(self._r)
 
         for route_type in ["flow", "trip", "vehicle"]:

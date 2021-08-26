@@ -23,8 +23,11 @@ SensitivityAnalysis:
         function: fleet_composition
         arguments:
           kwargs:
-            base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route-sampler.route.xml
+            base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route_sampler.route.xml
             fleet_composition: fleet_composition
+            controlled_dist_name: Class8Truck
+            other_dist_name: PersonalCar
+
         output_name: route_file
         passed_to_simulation: True
 
@@ -65,12 +68,11 @@ SensitivityAnalysis:
         
         generator_arguments: &PersonalCarArguments         
           common_parameters: |
-            #TODO: These are wrong
-            length;uniform(2,5)
-            speedFactor;uniform(1.1,0.1)
+            length;uniform(3,6)
+            speedFactor;uniform(0.8,1.2)
             param; mass; normal(1190,300); [800, 1700]
             vClass;passenger
-            carFollowingModel;IDM
+            carFollowModel;IDM
             emissionClass;PHEMlight/PC_G_EU4
             
       Class8Truck:
@@ -108,14 +110,14 @@ SensitivityAnalysis:
         generator_arguments: 
             common_parameters: |
               length;uniform(19,23)
-              speedFactor;uniform(1,0.1)
+              speedFactor;uniform(0.9,1.1)
               param; mass; normal(24522,7142); [7000, 43000]
               vClass;trailer
-              carFollowingModel;IDM
+              carFollowModel;IDM
               emissionClass;PHEMlight/HDV_TT_D_EU6
 
       generator:
-        function: create_vehicle_distribution
+        function: create_veh_distribution
         arguments:
           args:
             - PersonalCar

@@ -75,10 +75,14 @@ class BaseSUMOFunc:
 
     def _create_simulation(self, **kwargs):
         mod = beefy_import(self._params.simulation_core.simulation_function.module)
+        
+        # _args = []
+        _kwargs = {key: self._params.handle_path(item) for key, item in self._params.simulation_core.simulation_function.arguments.kwargs.items()}
+        # kwargs = {key: self._params.handle_path(item) for key, item in kwargs.items()}
 
         return mod(
-            *self._params.simulation_core.simulation_function.arguments.args, 
-            **self._params.simulation_core.simulation_function.arguments.kwargs,
+            *self._params.simulation_core.simulation_function.arguments.args or [], 
+            **_kwargs,
             **kwargs
         )
 
@@ -103,7 +107,7 @@ class BaseSUMOFunc:
 
     #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
-    def create_veh_distribution(self, output_file_name, distribution_size, args: List[SensitivityAnalysisGroup]) -> None:
+    def create_veh_distribution(self, *args: List[SensitivityAnalysisGroup], output_file_name, distribution_size,) -> None:
         """
         Creating the text input file
         """
@@ -121,7 +125,7 @@ class BaseSUMOFunc:
 
         for group in args:
 
-            text_parameters = group.generator_arguments
+            text_parameters = group.generator_arguments.common_parameters
 
             # compose the variables
             vary_lines = []
@@ -129,7 +133,7 @@ class BaseSUMOFunc:
                 center = var.distribution.params.sa_value
                 width = var.distribution.params.width
                 vary_lines.append(
-                    f"{var.name};uniform({str(center - width / 2)},{str(center + width / 2)})")
+                    f"{var.variable_name};uniform({str(center - width / 2)},{str(center + width / 2)})")
 
             text_parameters = "\n".join([text_parameters, *vary_lines])
             
@@ -143,11 +147,13 @@ class BaseSUMOFunc:
                             tmp_dist_input_file,
                             '--name', group.name,
                             '-o', veh_dist_file,
-                            '--size', distribution_size])
+                            '--size', str(distribution_size)])
 
         os.remove(tmp_dist_input_file)
 
-    def fleet_composition(self, base_route_file, fleet_composition):
+        return veh_dist_file
+
+    def fleet_composition(self, base_route_file, fleet_composition, controlled_dist_name, other_dist_name):
         """
         This function
         """
@@ -156,13 +162,13 @@ class BaseSUMOFunc:
                                         TEMP_PATTERN + Path(base_route_file).name)
 
         fleet = {
-            'Class8Truck': fleet_composition.distribution.sa_value,
-            'PersonalCar': 1 - fleet_composition.distribution.sa_value
+            controlled_dist_name: fleet_composition.distribution.sa_value,
+            other_dist_name: 1 - fleet_composition.distribution.sa_value
         }
 
         f = FleetComposition(fleet,
                              seed=self._params.SEED,
-                             route_file=base_route_file)
+                             route_file=self._params.handle_path(base_route_file))
 
         f.replace_vehType(
             output_path=output_file_path
