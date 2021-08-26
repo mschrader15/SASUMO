@@ -109,12 +109,18 @@ class FleetComposition:
             element.setAttribute("type", self._sample())
 
 
-def regex_fc_total(file_path):
+def regex_fc_total(file_path, time_low: float=None, time_high: float =None):
     pattern = br'(fuel="[\d\.]*")'
     fc_t = 0
+
     with open(file_path, 'r+') as f:
+        
         data = mmap.mmap(f.fileno(), 0)
-        for match in re.finditer(pattern, data):
+
+        time_low_i = re.search("time=\"{}\"".format("{:.2f}".format(time_low)).encode(), data).span()[-1] if time_low else 0
+        time_high_i = re.search("time=\"{}\"".format("{:.2f}".format(time_high)).encode(), data).span()[0] if time_high else -1
+
+        for match in re.finditer(pattern, data[time_low_i:time_high_i]):
             fc = float(match.group(1).decode().split('=')[-1][1:-1])
             fc_t += fc
         del data
@@ -136,7 +142,7 @@ if __name__ == "__main__":
     
 #     print(total_fuel * 0.1)
 
-    fc_t = regex_fc_total("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml")
+    fc_t = regex_fc_total("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml", time_low=3000, time_high=6000)
 
     print("fc_t: ", fc_t)
 
