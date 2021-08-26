@@ -150,7 +150,7 @@ SensitivityAnalysis:
     
 SimulationCore:
  
-  cpu_cores: 60 
+  cpu_cores: 2 
   preprocessing: None
   # This should point to a function in the
   manager_function: 

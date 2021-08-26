@@ -182,9 +182,7 @@ class BaseSUMOFunc:
             os.remove(f)
 
 
-# @ray.remote
-
-
+@ray.remote(num_cpus=2)
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
@@ -216,7 +214,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
                 output_dict[gen.output_name] = out
         return output_dict
 
-    # @ray.method(num_returns=1)
+    @ray.method(num_returns=1)
     def run(self, ):
         """
         This is the main function. It: 
@@ -225,7 +223,6 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
             2. runs the specific runner. It should have a "main" method. 
                I can create an abstract base class later
         """
-
         simulation_kwargs = self.execute_generator_functions()
 
         # self.create_veh_distribution()

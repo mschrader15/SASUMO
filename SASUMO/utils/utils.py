@@ -4,6 +4,7 @@ import csv
 from lxml import etree
 from xml.dom import minidom
 import re
+import mmap
 
 
 def path_constructor(path: str, cwd: str = None) -> str:
@@ -108,24 +109,16 @@ class FleetComposition:
             element.setAttribute("type", self._sample())
 
 
-def regex_file_parser(file_path):
-    import re, mmap
-
+def regex_fc_total(file_path):
     pattern = br'(fuel="[\d\.]*")'
-
     fc_t = 0
-
     with open(file_path, 'r+') as f:
         data = mmap.mmap(f.fileno(), 0)
-        mo = re.finditer(pattern, data)
-        for match in mo: 
+        for match in re.finditer(pattern, data):
             fc = float(match.group(1).decode().split('=')[-1][1:-1])
-            fc_t += (fc * 0.1) 
-            # print("found fuel", match.group(1))
-    
+            fc_t += fc
+        del data
     return fc_t
-
-# (fuel="[\d\.]*")
 
 
 if __name__ == "__main__":
@@ -143,7 +136,7 @@ if __name__ == "__main__":
     
 #     print(total_fuel * 0.1)
 
-    fc_t = regex_file_parser("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml")
+    fc_t = regex_fc_total("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml")
 
     print("fc_t: ", fc_t)
 

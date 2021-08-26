@@ -43,6 +43,7 @@ class SASUMO:
         self._f: BaseSUMOFunc = beefy_import(self._settings.simulation_core.manager_function.module)
 
     def _update_path(self, ):
+
         for new_path in [self._settings.simulation_core.manager_function.path, self._settings.simulation_core.simulation_function.path]:
             if new_path:
                 if "${" in new_path:
@@ -54,12 +55,6 @@ class SASUMO:
         return random.randint(a=0, b=SEED)
 
     def _generate_samples(self, ) -> np.array:
-        # # sampleset
-        # sampleset = [
-        #     self._transform_sample(sample_set=sample)
-        #     for sample in 
-                
-        # ]
 
         return saltelli.sample(
                     self._problem,
@@ -78,29 +73,40 @@ class SASUMO:
         } 
 
     def main(self, ) -> dict:
-        dispatch = [] 
+        dispatch = []
         results = []
         for i in range(self._settings.sensitivity_analysis.num_runs):
+            
             dispatch.append([i, self._spawn_process(i)])
-            while len(dispatch) >= self._settings.simulation_core.cpu_cores:
-                finished, _ = ray.wait([_id for _, _id in dispatch], num_returns=1)
+            
+            while (
+                len(dispatch) >= self._settings.simulation_core.cpu_cores
+                or (i >= (self._settings.sensitivity_analysis.num_runs - 1)
+                and dispatch)
+            ):
+
+                finished, _ = ray.wait([_id for _, _id in dispatch], num_returns=1, timeout=0.1)
+
                 if len(finished):
                     j = 0
                     while dispatch[j][-1] != finished[0]:
                         j += 1
                     results.append([ray.get(dispatch[j][1]), dispatch.pop(j)[0]])
+
+        finished, _ = ray.wait([_id for _, _id in dispatch], num_returns=len(dispatch))
+
+        results.append([[ray.get(_id), _id] for _id in finished])
+
         return results
 
     def _spawn_process(self, index: int) -> ray.ObjectRef:
-        
-        p = self._f(yaml_settings=deepcopy(self._settings), 
-                    sample=self._samples[index],
-                    seed=self._generate_seed(),
-                    sample_num=index
-                    )
-        p.run()
 
-        return p
+        p = self._f.remote(yaml_settings=deepcopy(self._settings), 
+                           sample=self._samples[index],
+                           seed=self._generate_seed(),
+                           sample_num=index
+                        )
+        return p.run.remote() 
 
     def _create_working_folder(self, ):
         working_p = os.path.join(

@@ -1,12 +1,8 @@
-from abc import ABCMeta
-from utils import on_disk_xml_parser, path_constructor
+from utils import path_constructor
+from utils import regex_fc_total
 
 
 class _OutputHandler:
-
-    # def __new__(cls, *args, **kwargs):
-    #     return super(_OutputHandler, cls).__new__(cls, *args, **kwargs)
-
     
     def __init__(self, *args, **kwargs) -> None:
         pass
@@ -35,24 +31,11 @@ class TotalEmissionsHandler(_OutputHandler):
         self._time_filter_upper = output_time_filter_upper
         self._sim_step = sim_step
 
-    def _load_xml(self):
-        yield from on_disk_xml_parser(self._emissions_xml, file_type="emissions")
+    # def _load_xml(self):
+    #     yield from on_disk_xml_parser(self._emissions_xml, file_type="emissions")
 
     def _y(self, ):
-        iter_xml = self._load_xml()
-        row = next(iter_xml)
-        fc_total = []
-        while row['time'] < self._time_filter_upper:
-            if row['time'] > self._time_filter_lower:
-                fc_total.append(float(row['fuel']))
-            row = next(iter_xml)
-        return sum(fc_total) * self._sim_step
-
-
-        sim_step = self._params['sim_step']
-        if self._params['fc_mode'].lower() == "sumo":
-            return sum(float(row['fuel']) * sim_step for row in self._load_xml() 
-                        if lower_time_b < row['time'] < upper_time_b)
+        return regex_fc_total(self._emissions_xml) * self._sim_step
 
     def matlab_fc_handler(self, ):
         """
