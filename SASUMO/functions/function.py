@@ -76,9 +76,9 @@ class BaseSUMOFunc:
     def _create_simulation(self, **kwargs):
         mod = beefy_import(self._params.simulation_core.simulation_function.module)
         
-        # _args = []
         _kwargs = {key: self._params.handle_path(item) for key, item in self._params.simulation_core.simulation_function.arguments.kwargs.items()}
-        # kwargs = {key: self._params.handle_path(item) for key, item in kwargs.items()}
+
+        _kwargs['random_seed'] = self._params.SEED
 
         return mod(
             *self._params.simulation_core.simulation_function.arguments.args or [], 

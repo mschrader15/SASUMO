@@ -36,7 +36,7 @@ class TotalEmissionsHandler(_OutputHandler):
         self._sim_step = sim_step
 
     def _load_xml(self):
-        yield from on_disk_xml_parser(self._params['emissions_output'], file_type="emissions")
+        yield from on_disk_xml_parser(self._emissions_xml, file_type="emissions")
 
     def _y(self, ):
         iter_xml = self._load_xml()
@@ -44,7 +44,7 @@ class TotalEmissionsHandler(_OutputHandler):
         fc_total = []
         while row['time'] < self._time_filter_upper:
             if row['time'] > self._time_filter_lower:
-                fc_total.append(row['fuel'])
+                fc_total.append(float(row['fuel']))
             row = next(iter_xml)
         return sum(fc_total) * self._sim_step
 

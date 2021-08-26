@@ -40,12 +40,13 @@ class Parser:
     @staticmethod
     def _parse_and_write_emissions(elem, metadata):
         if (elem.tag in 'timestep') and (len(elem.attrib) > 0):
-            meta_data = elem.attrib['time']
-            return meta_data, False
+            meta_data = float(elem.attrib['time'])
+            return meta_data, None
         elif (elem.tag in 'vehicle') and (len(elem.attrib) >= 19):
-            elem.attrib.update({'time': metadata})
-            return metadata, True
-        return None, False
+            elem_d = dict(elem.attrib) 
+            elem_d['time'] = metadata
+            return metadata, elem_d
+        return metadata, None
 
     def process(self, ):
         yield from self.fast_iter(etree.iterparse(self._file_path, events=("start", "end")))
@@ -53,10 +54,10 @@ class Parser:
     def fast_iter(self, context, ):
         meta_data = 0
         for _, elem in context:
-            meta_data, share_ok = self._parse_function(
+            meta_data, elem_d = self._parse_function(
                 elem, metadata=meta_data)
-            if share_ok:
-                yield elem.attrib
+            if elem_d:
+                yield elem_d
             elem.clear()
             while elem.getprevious() is not None:
                 try:
@@ -107,11 +108,46 @@ class FleetComposition:
             element.setAttribute("type", self._sample())
 
 
-# if __name__ == "__main__":
+def regex_file_parser(file_path):
+    import re, mmap
 
-    # r = RouteDistComber({'truck': 0.7, 'car': 0.3}, seed=22, route_file_path='/home/max/SUMO/airport-harper-sumo/sumo-xml/route-sampler/route_sampler.route.xml')
+    pattern = br'(fuel="[\d\.]*")'
 
-    # r.replace_vehType()
+    fc_t = 0
 
-        # for row in on_disk_xml_parser(xml_path="/home/max/SUMO/airport-harper-sumo/sumo-xml/emissions/emissions.out.xml", file_type='emissions'):
-        #     print(row)
+    with open(file_path, 'r+') as f:
+        data = mmap.mmap(f.fileno(), 0)
+        mo = re.finditer(pattern, data)
+        for match in mo: 
+            fc = float(match.group(1).decode().split('=')[-1][1:-1])
+            fc_t += (fc * 0.1) 
+            # print("found fuel", match.group(1))
+    
+    return fc_t
+
+# (fuel="[\d\.]*")
+
+
+if __name__ == "__main__":
+
+#     # r = RouteDistComber({'truck': 0.7, 'car': 0.3}, seed=22, route_file_path='/home/max/SUMO/airport-harper-sumo/sumo-xml/route-sampler/route_sampler.route.xml')
+
+#     # r.replace_vehType()
+    import time
+
+    t0 = time.time()
+    
+#     total_fuel = 0
+#     for row in on_disk_xml_parser(xml_path="/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml", file_type='emissions'):
+#         total_fuel += float(row['fuel'])
+    
+#     print(total_fuel * 0.1)
+
+    fc_t = regex_file_parser("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml")
+
+    print("fc_t: ", fc_t)
+
+    print(f"time: {time.time() - t0}")
+
+
+
