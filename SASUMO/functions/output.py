@@ -35,7 +35,7 @@ class TotalEmissionsHandler(_OutputHandler):
     #     yield from on_disk_xml_parser(self._emissions_xml, file_type="emissions")
 
     def _y(self, ):
-        return regex_fc_total(self._emissions_xml) * self._sim_step
+        return regex_fc_total(self._emissions_xml, self._time_filter_lower, self._time_filter_upper) * self._sim_step
 
     def matlab_fc_handler(self, ):
         """

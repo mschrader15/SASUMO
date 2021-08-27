@@ -114,7 +114,7 @@ def regex_fc_total(file_path, time_low: float=None, time_high: float =None):
     fc_t = 0
 
     with open(file_path, 'r+') as f:
-        
+
         data = mmap.mmap(f.fileno(), 0)
 
         time_low_i = re.search("time=\"{}\"".format("{:.2f}".format(time_low)).encode(), data).span()[-1] if time_low else 0
@@ -124,8 +124,11 @@ def regex_fc_total(file_path, time_low: float=None, time_high: float =None):
             fc = float(match.group(1).decode().split('=')[-1][1:-1])
             fc_t += fc
         del data
+    
     return fc_t
 
+# Below matches a whole vehicle row
+# (<vehicle)(.)+(?=>)
 
 if __name__ == "__main__":
 
