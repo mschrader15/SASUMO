@@ -112,11 +112,8 @@ class FleetComposition:
 def regex_fc_total(file_path, time_low: float=None, time_high: float =None):
     pattern = br'(fuel="[\d\.]*")'
     fc_t = 0
-
     with open(file_path, 'r+') as f:
-
         data = mmap.mmap(f.fileno(), 0)
-
         time_low_i = re.search("time=\"{}\"".format("{:.2f}".format(time_low)).encode(), data).span()[-1] if time_low else 0
         time_high_i = re.search("time=\"{}\"".format("{:.2f}".format(time_high)).encode(), data).span()[0] if time_high else -1
 
@@ -124,7 +121,6 @@ def regex_fc_total(file_path, time_low: float=None, time_high: float =None):
             fc = float(match.group(1).decode().split('=')[-1][1:-1])
             fc_t += fc
         del data
-    
     return fc_t
 
 # Below matches a whole vehicle row
@@ -132,24 +128,26 @@ def regex_fc_total(file_path, time_low: float=None, time_high: float =None):
 
 if __name__ == "__main__":
 
-#     # r = RouteDistComber({'truck': 0.7, 'car': 0.3}, seed=22, route_file_path='/home/max/SUMO/airport-harper-sumo/sumo-xml/route-sampler/route_sampler.route.xml')
 
-#     # r.replace_vehType()
-    import time
+    r = FleetComposition({'Class8Truck': 0.0, 'PersonalCar': 1}, 
+                         seed=22, 
+                         route_file='/home/max/remote/airport-harper-sumo/sumo-xml/sasumo-xml/route-file/route.in.xml')
 
-    t0 = time.time()
+    r.replace_vehType()
+
+#     import time
+
+#     t0 = time.time()
     
-#     total_fuel = 0
-#     for row in on_disk_xml_parser(xml_path="/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml", file_type='emissions'):
-#         total_fuel += float(row['fuel'])
+# #     total_fuel = 0
+# #     for row in on_disk_xml_parser(xml_path="/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml", file_type='emissions'):
+# #         total_fuel += float(row['fuel'])
     
-#     print(total_fuel * 0.1)
+# #     print(total_fuel * 0.1)
 
-    fc_t = regex_fc_total("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml", time_low=3000, time_high=6000)
+#     fc_t = regex_fc_total("/home/max/tmp/airport_harper_sumo_sasumo/test/2021_08_26-08_59_49/sample_0/__temp__emissions.out.xml", time_low=3000, time_high=6000)
 
-    print("fc_t: ", fc_t)
+#     print("fc_t: ", fc_t)
 
-    print(f"time: {time.time() - t0}")
-
-
+#     print(f"time: {time.time() - t0}")
 

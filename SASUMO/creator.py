@@ -130,7 +130,9 @@ class SASUMO:
 if __name__ == "__main__":
 
     import os
+    
     ROOT = os.path.dirname(os.path.abspath(__file__))
+
     s = SASUMO(os.path.join(ROOT, '../', 'input_files', 'test.yaml'))
 
     s.main()
