@@ -63,7 +63,7 @@ SensitivityAnalysis:
             type: uniform
             params:
               width: 0.1
-              min: 0.2
+              min: 1
               max: 4
         
         generator_arguments: &PersonalCarArguments         
@@ -74,6 +74,7 @@ SensitivityAnalysis:
             vClass;passenger
             carFollowModel;IDM
             emissionClass;PHEMlight/PC_G_EU4
+            lcKeepRight;uniform(0.45, 0.65)
             
       Class8Truck:
         
@@ -115,6 +116,7 @@ SensitivityAnalysis:
               vClass;trailer
               carFollowModel;IDM
               emissionClass;PHEMlight/HDV_TT_D_EU6
+              lcKeepRight;uniform(0.75, 0.85)
 
       generator:
         function: create_veh_distribution
