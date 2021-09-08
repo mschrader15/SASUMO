@@ -256,6 +256,11 @@ class _SensitivityAnalysisOutput:
     def arguments(self, val: dict):
         self._args = _ArgumentHolder(**val)
 
+@dataclass
+class _SensitivityAnalysisPostProcessing(_SensitivityAnalysisOutput):
+
+    path: str
+
 
 class _SensitivityAnalysisSettings:
 
@@ -270,6 +275,12 @@ class _SensitivityAnalysisSettings:
             )
         self.num_runs: int = d['num_runs']
         self.working_root: str = d['working_root']
+
+        if 'Post_Processing' in d:
+            self.post_processing: _SensitivityAnalysisPostProcessing = \
+                _SensitivityAnalysisPostProcessing(
+                    **d['Post_Processing']
+                ) 
 
     def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
         for name, variable_d in d.items():

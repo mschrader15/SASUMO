@@ -68,6 +68,9 @@ class BaseSUMOFunc:
     # def _run(self, ):
     #     pass
     #     # return folder
+    def _replace_variable(self, d: dict) -> dict:
+        return {key: self._params.handle_path(item) for key, item in d.items()}
+
     
     def _create_output_handler(self, ):
         mod = beefy_import(self._params._sensitivity_analysis.output.module)
@@ -76,7 +79,7 @@ class BaseSUMOFunc:
     def _create_simulation(self, **kwargs):
         mod = beefy_import(self._params.simulation_core.simulation_function.module)
         
-        _kwargs = {key: self._params.handle_path(item) for key, item in self._params.simulation_core.simulation_function.arguments.kwargs.items()}
+        _kwargs = self._replace_variable(self._params.simulation_core.simulation_function.arguments.kwargs)
 
         _kwargs['random_seed'] = self._params.SEED
 
@@ -176,6 +179,16 @@ class BaseSUMOFunc:
 
         return output_file_path
 
+    def post_processing(self, ) -> None:
+
+         mod = beefy_import(self._params.sensitivity_analysis.post_processing.module)
+
+         mod(
+             *self._params.sensitivity_analysis.post_processing.arguments.args,
+             **self._replace_variable(self._params.sensitivity_analysis.post_processing.arguments.kwargs)
+         ).main()
+
+
     def cleanup(self, ) -> None:
         # delete files
         for f in glob.glob(os.path.join(self._params.WORKING_FOLDER, TEMP_PATTERN.join(['*'] * 2))):
@@ -235,4 +248,11 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         # run the simulation
         self._simulation.main()
 
+        self.post_processing()
+
         return self.output
+
+
+    
+
+

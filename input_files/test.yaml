@@ -154,7 +154,17 @@ SensitivityAnalysis:
         output_time_filter_lower: 3600
         output_time_filter_upper: 7200
         sim_step: 0.1
+        save_output: True
 
+  
+  Post_Processing:
+    module: tools.output.Calibration
+    path: ${SIMULATION_ROOT}
+    arguments:
+      kwargs:
+        settings: ${cwd}/simulation_params.json
+        historical_data: ${SIMULATION_ROOT}/data-analysis/feb_2020/detector_average_table_5_min.pkl
+        save_path: ${cwd}/calibration_results.json
     
 SimulationCore:
  
