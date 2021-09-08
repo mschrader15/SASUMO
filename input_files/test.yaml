@@ -186,6 +186,12 @@ SimulationCore:
           simulation_output_path: ${cwd}
           emissions_file_name: __temp__emissions.out.xml
 
+  post_processing:
+    module: tools.output.Calibration
+    path: ${SIMULATION_ROOT}
+    arguments:
+      simulation_output_path: ${cwd}
+      calibration_file_name: 
 
 
 FileManager:
