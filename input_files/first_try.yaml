@@ -1,12 +1,12 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: test
+  name: first_try
   author: mcschrader@crimson.ua.edu
 
 SensitivityAnalysis:
 
   working_root: ${SENSITIVITY_ANALYSIS_OUTPUT} 
-  num_runs: 1000
+  num_runs: 100
   variables: &sa_variables
 
     FleetComposition:
@@ -135,16 +135,7 @@ SensitivityAnalysis:
             distribution_size: 100
         output_name: veh_distribution_file
         passed_to_simulation: True
-      
-    ModelFidelity:
-      variable_name: model_fidelity
-      type: model_fidelity
-      distribution:
-        type: uniform sample
-        params:
-          categorical: 
-            - phemlight
-            - matlab
+
   
   Output: 
     module: functions.output.TotalEmissionsHandler
@@ -168,11 +159,11 @@ SensitivityAnalysis:
     
 SimulationCore:
  
-  cpu_cores: 30
+  cpu_cores: 60
   preprocessing: None
   # This should point to a function in the
   manager_function: 
-    module: functions.EmissionsSUMOFunc
+    module: functions.RemoteEmissionsSUMOFunc
     # sensitivity analysis sample is inherently the first argument 
     arguments: 
 

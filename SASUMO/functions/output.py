@@ -17,7 +17,7 @@ class _OutputHandler:
 
     def save_output(self, val):
         with open(os.path.join(self._cwd, 'f_out.txt'), 'w') as f:
-            f.write(val)
+            f.write(str(val))
 
 
 class TotalEmissionsHandler(_OutputHandler):
@@ -30,7 +30,7 @@ class TotalEmissionsHandler(_OutputHandler):
                  sim_step: float,
                  save_output: bool = False) -> None:
 
-        super(_OutputHandler, self).__init__(cwd)
+        super().__init__(cwd)
 
         self._emissions_xml = path_constructor(emissions_xml, self._cwd)
         self._time_filter_lower = output_time_filter_lower
@@ -43,7 +43,10 @@ class TotalEmissionsHandler(_OutputHandler):
 
     def _y(self, ):
         output = regex_fc_total(
-            self._emissions_xml, self._time_filter_lower, self._time_filter_upper) * self._sim_step
+            self._emissions_xml, 
+            self._time_filter_lower, 
+            self._time_filter_upper
+            ) * self._sim_step
         if self._save_output:
             self.save_output(output)
         return output

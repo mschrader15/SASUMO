@@ -54,24 +54,17 @@ class BaseSUMOFunc:
         self._simulation: object = None
 
     def _dump_parameters(self, ):
-        self._params.save(
-            os.path.join(self._params.WORKING_FOLDER, 'run_params.json')
+        self._params.save_myself(
+            os.path.join(self._params.WORKING_FOLDER, 'run_params.pkl')
         )
 
-    # def run(self, *args, **kwargs):
-    #     # dump the parameters at run time
-    #     self._dump_parameters()
+        self._params.save_sa_values(
+            os.path.join(self._params.WORKING_FOLDER, 'sa_values.json')
+        )
 
-    #     # then call the inner run function
-    #     return self._run(*args, **kwargs)
-
-    # def _run(self, ):
-    #     pass
-    #     # return folder
     def _replace_variable(self, d: dict) -> dict:
         return {key: self._params.handle_path(item) for key, item in d.items()}
 
-    
     def _create_output_handler(self, ):
         mod = beefy_import(self._params._sensitivity_analysis.output.module)
         return mod(cwd=self._params.WORKING_FOLDER, **self._params._sensitivity_analysis.output.arguments.kwargs)
@@ -195,7 +188,7 @@ class BaseSUMOFunc:
             os.remove(f)
 
 
-@ray.remote  # (num_cpus=2)
+# @ray.remote  # (num_cpus=2)
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
@@ -227,7 +220,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
                 output_dict[gen.output_name] = out
         return output_dict
 
-    @ray.method(num_returns=1)
+    # @ray.method(num_returns=1)
     def run(self, ):
         """
         This is the main function. It: 
@@ -249,10 +242,22 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         self._simulation.main()
 
         self.post_processing()
+        
+        y = self.output
 
-        return self.output
+        self.cleanup()
 
-
+        return y
     
 
 
+@ray.remote
+class RemoteEmissionsSUMOFunc(EmissionsSUMOFunc):
+
+    def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
+
+        super().__init__(yaml_settings, sample, seed, *args, **kwargs)
+
+    @ray.method(num_returns=1)
+    def run(self, ):
+        return super().run()

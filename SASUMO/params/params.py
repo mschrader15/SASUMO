@@ -9,7 +9,11 @@ import yaml
 # import pendulum
 # from dataclasses import dataclass
 import logging
-from utils import path_constructor
+try:
+    from utils import path_constructor
+except ImportError:
+    from SASUMO.SASUMO.utils import path_constructor
+
 from .yaml_handler import Settings4SASUMO
 
 """ Call this once to error out before SUMO runs"""
@@ -103,7 +107,11 @@ class _FlexibleDict:
             except Exception:
                 return {}
 
+        # custom_json_serializer()
+
         with open(location, "w") as f:
+        #     pickle.dump(self, f, -1)
+            
             s = json.dumps(
                     {val: self[val]
                         for val in dir(self) if "__" not in val[:2]},
@@ -114,6 +122,8 @@ class _FlexibleDict:
             f.write(
                 s
             )
+
+# def custom_json_serializer(object)
 
 
 # class _VehAttributes:
@@ -306,37 +316,3 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
             return path_constructor(arg, self.WORKING_FOLDER)
         return arg
    
-    # @staticmethod
-    # def _path_replace(cls, ) -> None:
-    #     for item in cls:
-    #         if isinstance(item, object):
-    #             _path_replace()
-
-    
-        # [
-        #     self.sensitivity_analysis.variables[
-        #         i
-        #     ].distribution.params.transform(sample)
-        #     for i, sample in enumerate(sample_set)
-        # ]
-
-
-    # def transform_sample(self, sa_sumo: Settings4SASUMO, sample_set: dict) -> None:
-    #     return [
-    #         sa_sumo.sensitivity_analysis.variables[
-    #             i
-    #         ].distribution.params.transform(sample)
-    #         for i, sample in enumerate(sample_set)
-    #     ]
-
-    # @staticmethod
-    # def _load(input_object: Union[str, dict]) -> dict:
-    #     if isinstance(input_object, dict):
-    #         return input_object
-    #     with open(input_object, "rb") as f:
-    #         return json.load(f) if 'json' in os.path.splitext(input_object)[1] else yaml.load(f)
-
-
-# if __name__ == "__main__":
-
-#     ProcessParameters(yaml_settings=)

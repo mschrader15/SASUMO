@@ -1,28 +1,11 @@
+import json
 import os
-import shutil
+# import shutil
+import pickle
 from dataclasses import dataclass
-from typing import Any, Generator, List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import yaml
-
-# from utils import path_constructor
-
-
-# class PathHandler:
-
-#     def __init__(self, base_path: str) -> None:
-
-#         self._cwd = base_path
-    
-#     def _
-
-#     def handle_path(self, arg: Any) -> Any:
-#         if isinstance(arg, str):
-#             return path_constructor(arg, self._cwd)
-#         return arg
-
-#     def update_cwd(self, base_path: str) -> None:
-#         self._cwd = base_path
 
 
 @dataclass
@@ -30,7 +13,6 @@ class _Dist:
 
     def transform(self, value: float) -> Any:
         self.sa_value = self._transform(value)
-
 
     def _transform(self, value: float) -> Any:
         return value
@@ -107,7 +89,7 @@ class _GeneratorArguments:
 
 @dataclass
 class _ArgumentHolder:
-    args: list = None
+    args: list = ()
     kwargs: dict = None
 
 
@@ -146,7 +128,6 @@ class _SensitivityAnalysisVariable:
         self.distribution: _DistributionSettings = _DistributionSettings(
             type=distribution['type'], params=distribution['params'])
 
-
     def transform(self, val):
         self.distribution.transform(val)
 
@@ -162,6 +143,15 @@ class _SensitivityAnalysisVariable:
             return value in self.name
         return False
 
+    @property
+    def variables(self, ) -> List[object]:
+        """
+        To act like a SensitivityAnalysisGroup
+
+        Returns:
+            List[object]: [description]
+        """
+        return [self]
 
 class SensitivityAnalysisGroup:
 
@@ -246,20 +236,21 @@ class _SensitivityAnalysisOutput:
 
     module: str
     arguments: dict
-    
+
     @property
     def arguments(self, ) -> _ArgumentHolder:
         # return self._args
         return self._args
-    
+
     @arguments.setter
     def arguments(self, val: dict):
         self._args = _ArgumentHolder(**val)
 
+
 @dataclass
 class _SensitivityAnalysisPostProcessing(_SensitivityAnalysisOutput):
 
-    path: str
+    path: str = None
 
 
 class _SensitivityAnalysisSettings:
@@ -272,7 +263,7 @@ class _SensitivityAnalysisSettings:
 
         self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(
             **d['Output']
-            )
+        )
         self.num_runs: int = d['num_runs']
         self.working_root: str = d['working_root']
 
@@ -280,7 +271,7 @@ class _SensitivityAnalysisSettings:
             self.post_processing: _SensitivityAnalysisPostProcessing = \
                 _SensitivityAnalysisPostProcessing(
                     **d['Post_Processing']
-                ) 
+                )
 
     def _compose_variables(self, d: dict, l=[]) -> List[_SensitivityAnalysisVariable]:
         for name, variable_d in d.items():
@@ -296,7 +287,7 @@ class _SensitivityAnalysisSettings:
         return len(self.variables)
 
     @property
-    def variables(self, ) -> List[_SensitivityAnalysisVariable]:
+    def variables(self, ) -> List[SensitivityAnalysisGroup]:
         l = []
         for var in self._variables:
             if isinstance(var, SensitivityAnalysisGroup):
@@ -313,7 +304,6 @@ class _SensitivityAnalysisSettings:
             if isinstance(var, SensitivityAnalysisGroup) and var.generator
         ]
 
-    
 
 @dataclass
 class _SimFunctionCore:
@@ -401,10 +391,15 @@ class Settings4SASUMO(_Settings):
 
     def __init__(self, file_path: str) -> None:
 
-        self._yaml_settings_path = file_path
+        if ".pkl" not in file_path:
+            self._yaml_settings_path = file_path
 
-        with open(file_path, 'r') as f:
-            self._unpack_settings(yaml.safe_load(f))
+            with open(file_path, 'r') as f:
+                self._unpack_settings(yaml.safe_load(f))
+
+        else:
+            with open(file_path, 'rb') as f:
+                self = pickle.load(f, fix_imports=True)
 
     # def __getattribute__(self, name: str) -> Any:
     #     return self._settings[name]
@@ -417,23 +412,37 @@ class Settings4SASUMO(_Settings):
     def save_myself(self, file_location: str):
         """
         Copy the input file to the location that the simulation is ran from. 
-        
+
         Also refered to as the "Working Root"
 
         Args:
             file_location (str): [description]
         """
-        file_name = os.path.split(self._yaml_settings_path)[1]
-        # TODO: move the file correctly
-        shutil.copy(self._yaml_settings_path, os.path.join(file_location, file_name))
+        # file_name = os.path.split(self._yaml_settings_path)[1]
+        
+        with open(file_location, 'wb') as f:
+
+            pickle.dump(self, f, -1)
+
+    def save_sa_values(self, file_location: str,) -> None:
+        with open(file_location, 'w') as f:
+            f.write(
+                json.dumps(
+                       {
+                        var.name: var.distribution.sa_value 
+                        for sa_var in self.sensitivity_analysis.variables 
+                        for var in sa_var.variables
+                        }
+                )
+                )
 
     # def _read
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    import os
-    ROOT = os.path.dirname(os.path.abspath(__file__))
-    s = Settings4SASUMO(os.path.join(
-        ROOT, '../../', 'input_files', 'test.yaml'))
-    print(s.simulation_core)
+#     import os
+#     ROOT = os.path.dirname(os.path.abspath(__file__))
+#     s = Settings4SASUMO(os.path.join(
+#         ROOT, '../../', 'input_files', 'test.yaml'))
+#     print(s.simulation_core)

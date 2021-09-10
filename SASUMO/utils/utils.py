@@ -18,9 +18,11 @@ def path_constructor(path: str, cwd: str = None) -> str:
         return os.environ.get(env_var) + path[match.end():]
     return path
 
+
 def beefy_import(path: str) -> object:
     split_mod = path.split('.')
     return getattr(import_module(".".join(split_mod[:-1])), split_mod[-1])
+
 
 class Parser:
     def __init__(
