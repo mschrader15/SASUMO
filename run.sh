@@ -16,7 +16,7 @@ export NOHUP_ERROR=$SENSITIVITY_ANALYSIS_OUTPUT/nohup.err
 ray stop
 
 # Start Ray
-ray start --head --port=6379 --num-cpus=$CPUS
+ray start --head --port=6379  --num-cpus=$CPUS
 
 # Run Simulation
 (nohup python SASUMO/SASUMO/creator.py $SETTINGS_FILE > $NOHUP 2> $NOHUP_ERROR < /dev/null &) && (nohup ray stop)

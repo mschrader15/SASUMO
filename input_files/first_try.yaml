@@ -1,12 +1,12 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: 630AM_6_Parameter
+  name: 630AM_6_Parameter_Narrow_Dist
   author: mcschrader@crimson.ua.edu
 
 SensitivityAnalysis:
 
   working_root: ${SENSITIVITY_ANALYSIS_OUTPUT} 
-  # N from N * (2D + 2) samples
+  # N from N * (2D + 2) samples, should be a power of 2
   N: 512
   calc_second_order: True
   variables: &sa_variables
@@ -26,6 +26,7 @@ SensitivityAnalysis:
         function: fleet_composition
         arguments:
           kwargs:
+            # Important to update this base_route_file. It is what is passed to SUMO eventually
             base_route_file: ${SIMULATION_ROOT}/sumo-xml/sasumo-xml/route-file/route_sampler.route.xml
             fleet_composition: fleet_composition
             controlled_dist_name: Class8Truck
