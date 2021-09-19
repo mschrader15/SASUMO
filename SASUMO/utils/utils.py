@@ -15,7 +15,10 @@ def path_constructor(path: str, cwd: str = None) -> str:
         env_var = match.group()[2:-1]
         if env_var == 'cwd':
             return cwd + path[match.end():]
-        return os.environ.get(env_var) + path[match.end():]
+        try:
+            return os.environ.get(env_var) + path[match.end():]
+        except TypeError:
+            raise Exception(env_var)
     return path
 
 

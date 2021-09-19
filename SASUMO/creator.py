@@ -4,6 +4,7 @@ import sys
 import random
 import json
 import csv
+from typing import List
 
 import ray
 import click
@@ -24,7 +25,10 @@ from SALib.sample import saltelli
 # TODO organize this somewhere
 SEED = 1e6
 PROBLEM_DESCRIPT_FILE_NAME = "SALib_Problem.json"
+SAMPLES_FILE_NAME = "SALib_Samples.txt"
 RESULTS_NAME = "output.txt"
+SOBOL_ANALYSIS = lambda x: f"sobol_analysis_{x}.csv"
+
 
 
 # @click('--settings', help='path to the SASUMO settings file')
@@ -39,7 +43,7 @@ class SASUMO:
         self._settings.save_myself(
             os.path.join(
                 self._settings.sensitivity_analysis.working_root,
-                "settings_obj.json"
+                "settings.yaml"
             )
         )
 
@@ -82,12 +86,18 @@ class SASUMO:
         return random.randint(a=0, b=SEED)
 
     def _generate_samples(self, ) -> np.array:
-
-        return saltelli.sample(
+        
+        sample = saltelli.sample(
             self._problem,
-            self._settings.sensitivity_analysis.num_runs,
-            calc_second_order=False,
+            self._settings.sensitivity_analysis.N,
+            calc_second_order=self._settings.sensitivity_analysis.calc_second_order,
         )
+
+        print(f"Running {len(sample)} simulations")
+
+        np.savetxt(os.path.join(self._settings.sensitivity_analysis.working_root, SAMPLES_FILE_NAME), sample)
+        
+        return sample
 
     def _compose_problem(self, ) -> dict:
 
@@ -108,17 +118,19 @@ class SASUMO:
                 )
             )
 
-    def main(self, ) -> dict:
+    def main(self, ) -> List[List[float]]:
 
         dispatch = []
         results = []
-        for i in range(self._settings.sensitivity_analysis.num_runs):
+
+        # dispatch = [(i, self._spawn_process(i)) for i in range(self._settings.sensitivity_analysis.num_runs)]
+        for i, _ in enumerate(self._samples):
 
             dispatch.append([i, self._spawn_process(i)])
 
             while (
                 len(dispatch) >= self._settings.simulation_core.cpu_cores
-                or (i >= (self._settings.sensitivity_analysis.num_runs - 1)
+                or (i >= (len(self._samples) - 1)
                     and dispatch)
             ):
 
@@ -129,13 +141,7 @@ class SASUMO:
                     j = 0
                     while dispatch[j][-1] != finished[0]:
                         j += 1
-                    results.append(
-                        [ray.get(dispatch[j][1]), dispatch.pop(j)[0]])
-
-        finished, _ = ray.wait(
-            [_id for _, _id in dispatch], num_returns=len(dispatch))
-
-        results.append([[ray.get(_id), _id] for _id in finished])
+                    results.append([ray.get(dispatch[j][1]), dispatch.pop(j)[0]])     # results.append([[ray.get(_id), i] for i, _id in dispatch])
 
         return results
 
@@ -171,12 +177,23 @@ class SASUMO:
 
         ).run()
 
-    def save_results(self, results: list) -> None:
-        with open(os.path.join(self._settings.sensitivity_analysis.working_root, RESULTS_NAME), 'w') as f:
-            writer = csv.writer(f)
-            writer.writerow(["Results", "Sample_Num"])
-            writer.writerows(results)
-            
+    def save_results(self, sobol_analysis: list, results: list) -> None:
+        # save the sobol analysis
+        for i, result in enumerate(sobol_analysis.to_df()):
+            result.to_csv(
+                os.path.join(
+                    self._settings.sensitivity_analysis.working_root, 
+                    SOBOL_ANALYSIS(i)
+                )
+            )
+
+        # save the results
+        np.savetxt(
+            os.path.join(self._settings.sensitivity_analysis.working_root, RESULTS_NAME), 
+            np.array(results)
+        )
+
+
 
 
 @click.command()
@@ -193,12 +210,16 @@ def run(debug, settings_file):
         s.debug_main()
     else:
         try:
-            ray.init(adress="auto")
-        except RuntimeError:
+            ray.init(address="auto")
+        except (ConnectionError, RuntimeError):
             print("Starting Ray from python instead")
             ray.init()
-        results = s.main()
-        s.save_results(results)
+
+        results = sorted([res for res in s.main() if res], key=lambda x: x[1])
+
+        analysis = sobol.analyze(s._problem, np.array([r[0] for r in results]), print_to_console=True)
+
+        s.save_results(analysis, results)
 
 
 if __name__ == "__main__":

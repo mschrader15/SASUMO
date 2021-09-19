@@ -1,6 +1,6 @@
 import json
 import os
-# import shutil
+import shutil
 import pickle
 from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
@@ -192,7 +192,7 @@ class SensitivityAnalysisGroup:
 
     def _replace_name_with_reference(self, name: str) -> object:
         for var in self._variables:
-            if isinstance(name, str) and name in var.name:
+            if isinstance(name, str) and name.lower() in var.name.lower():
                 return var
         return name
 
@@ -264,7 +264,8 @@ class _SensitivityAnalysisSettings:
         self.output: _SensitivityAnalysisOutput = _SensitivityAnalysisOutput(
             **d['Output']
         )
-        self.num_runs: int = d['num_runs']
+        self.N: int = d['N']
+        self.calc_second_order = d['calc_second_order']
         self.working_root: str = d['working_root']
 
         if 'Post_Processing' in d:
@@ -419,11 +420,10 @@ class Settings4SASUMO(_Settings):
             file_location (str): [description]
         """
         # file_name = os.path.split(self._yaml_settings_path)[1]
+
+        # copy
+        shutil.copy(self._yaml_settings_path, file_location)
         
-        with open(file_location, 'wb') as f:
-
-            pickle.dump(self, f, -1)
-
     def save_sa_values(self, file_location: str,) -> None:
         with open(file_location, 'w') as f:
             f.write(
@@ -436,13 +436,3 @@ class Settings4SASUMO(_Settings):
                 )
                 )
 
-    # def _read
-
-
-# if __name__ == "__main__":
-
-#     import os
-#     ROOT = os.path.dirname(os.path.abspath(__file__))
-#     s = Settings4SASUMO(os.path.join(
-#         ROOT, '../../', 'input_files', 'test.yaml'))
-#     print(s.simulation_core)

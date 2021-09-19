@@ -54,10 +54,6 @@ class BaseSUMOFunc:
         self._simulation: object = None
 
     def _dump_parameters(self, ):
-        self._params.save_myself(
-            os.path.join(self._params.WORKING_FOLDER, 'run_params.pkl')
-        )
-
         self._params.save_sa_values(
             os.path.join(self._params.WORKING_FOLDER, 'sa_values.json')
         )
@@ -103,7 +99,7 @@ class BaseSUMOFunc:
 
     #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
-    def create_veh_distribution(self, *args: List[SensitivityAnalysisGroup], output_file_name, distribution_size,) -> None:
+    def create_veh_distribution(self, *args: List[SensitivityAnalysisGroup], output_file_name, distribution_size, delta: SensitivityAnalysisGroup) -> None:
         """
         Creating the text input file
         """
@@ -130,6 +126,14 @@ class BaseSUMOFunc:
                 width = var.distribution.params.width
                 vary_lines.append(
                     f"{var.variable_name};uniform({str(center - width / 2)},{str(center + width / 2)})")
+
+            # add in the delta
+            center = delta.distribution.params.sa_value
+            width = delta.distribution.params.width
+            vary_lines.append(
+                f"""{delta.variable_name};uniform({str(center - width / 2)},{str(center + width / 2)})"""
+            )
+
 
             text_parameters = "\n".join([text_parameters, *vary_lines])
             
