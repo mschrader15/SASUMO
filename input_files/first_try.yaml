@@ -7,7 +7,7 @@ SensitivityAnalysis:
 
   working_root: ${SENSITIVITY_ANALYSIS_OUTPUT} 
   # N from N * (2D + 2) samples
-  N: 300
+  N: 512
   calc_second_order: True
   variables: &sa_variables
 
@@ -19,13 +19,14 @@ SensitivityAnalysis:
         type: uniform
         params:
           min: 0.0
-          max: 0.7
+          max: 0.4
       
       generator: 
+        
         function: fleet_composition
         arguments:
           kwargs:
-            base_route_file: ${SIMULATION_ROOT}/sumo-xml/route-sampler/route_sampler.route.xml
+            base_route_file: ${SIMULATION_ROOT}/sumo-xml/sasumo-xml/route-file/route_sampler.route.xml
             fleet_composition: fleet_composition
             controlled_dist_name: Class8Truck
             other_dist_name: PersonalCar
@@ -42,7 +43,7 @@ SensitivityAnalysis:
         distribution:
           type: uniform
           params:
-            width: 0.5
+            width: 0.05
             min: 1
             max: 10
 
@@ -54,7 +55,7 @@ SensitivityAnalysis:
           distribution:
             type: uniform
             params:
-              width: 0.5
+              width: 0.05
               min: 0.5
               max: 3 
         
@@ -74,13 +75,13 @@ SensitivityAnalysis:
           distribution: 
             type: uniform
             params:
-              width: 0.1
-              min: 2.5
+              width: 0.05
+              min: 3
               max: 6
         
         generator_arguments: &PersonalCarArguments         
           common_parameters: |
-            length;uniform(3,6)
+            length;uniform(4,6)
             speedFactor;uniform(0.8,1.2)
             param; mass; normal(1190,300); [800, 1700]
             vClass;passenger
@@ -101,7 +102,7 @@ SensitivityAnalysis:
           distribution:
             type: uniform
             params:
-              width: 0.5
+              width: 0.05
               min: 0.5
               max: 3 
 
@@ -123,7 +124,7 @@ SensitivityAnalysis:
             params:
               min: 1
               max: 3
-              width: 0.5
+              width: 0.05
         
         generator_arguments: 
             common_parameters: |
