@@ -1,10 +1,10 @@
-SETTINGS_FILE="/home/max/remote/airport-harper-sumo/SASUMO/input_files/first_try.yaml"
+SETTINGS_FILE="/home/max/remote/airport-harper-sumo/SASUMO/input_files/no_fleet_composition.yaml"
 
 # Getting the CPU Cores
 CPU_LINES="$(grep -oP '(?>cpu_cores:).(?:\d)+' $SETTINGS_FILE)"
 CPUS="$(grep -oP '(\d)+' <<< $CPU_LINES)"
 
-source venv/bin/activate
+source /home/max/remote/airport-harper-sumo/venv/bin/activate
 
 # change these for your own system
 export SIMULATION_ROOT=/home/max/remote/airport-harper-sumo

@@ -99,7 +99,7 @@ class BaseSUMOFunc:
 
     #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
 
-    def create_veh_distribution(self, *args: List[SensitivityAnalysisGroup], output_file_name, distribution_size, delta: SensitivityAnalysisGroup) -> None:
+    def create_veh_distribution(self, *args: List[SensitivityAnalysisGroup], output_file_name, distribution_size, delta: SensitivityAnalysisGroup = None) -> None:
         """
         Creating the text input file
         """
@@ -125,18 +125,22 @@ class BaseSUMOFunc:
                 center = var.distribution.params.sa_value
                 width = var.distribution.params.width
                 vary_lines.append(
-                    f"{var.variable_name};uniform({str(center - width / 2)},{str(center + width / 2)})")
+                    f'{var.variable_name};uniform({center - width / 2},{center + width / 2})'
+                )
 
-            # add in the delta
-            center = delta.distribution.params.sa_value
-            width = delta.distribution.params.width
-            vary_lines.append(
-                f"""{delta.variable_name};uniform({str(center - width / 2)},{str(center + width / 2)})"""
-            )
+
+            if delta:
+                # add in the delta (if delta)
+                center = delta.distribution.params.sa_value
+                width = delta.distribution.params.width
+                vary_lines.append(
+                    f'{delta.variable_name};uniform({center - width / 2},{center + width / 2})'
+                )
+
 
 
             text_parameters = "\n".join([text_parameters, *vary_lines])
-            
+
             with open(tmp_dist_input_file, 'w') as f:
                 """
                 Create a list of rows to write to the text file
