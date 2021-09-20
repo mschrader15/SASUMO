@@ -1,0 +1,3 @@
+[submodule "analysis/savvy"]
+	path = analysis/savvy
+	url = https://github.com/houghb/savvy.git
