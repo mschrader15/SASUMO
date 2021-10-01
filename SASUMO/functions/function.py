@@ -12,12 +12,12 @@ from datetime import datetime
 
 import numpy as np
 import ray
-# internal imports
-from params import ProcessParameters, Settings4SASUMO
-from params import SensitivityAnalysisGroup
-from utils import FleetComposition, beefy_import
 
-from .output import TotalEmissionsHandler
+# internal imports
+from SASUMO.params import ProcessParameters, Settings4SASUMO
+from SASUMO.params import SensitivityAnalysisGroup
+from SASUMO.utils import FleetComposition, beefy_import
+from SASUMO.functions.output import TotalEmissionsHandler
 
 # from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
 
@@ -28,22 +28,25 @@ from .output import TotalEmissionsHandler
 TEMP_PATTERN = "__temp__"
 
 
-def _stringify_list(_l: list) -> str:
-    ", ".join(map(_l, float))
-
-
 class BaseSUMOFunc:
 
     def __init__(self,
                  yaml_params: Settings4SASUMO,
                  sample: np.array,
-                 seed: int,
                  sample_num: int,
+                 seed: int = None,
+                 replay: bool = False,
+                 replay_root: str = None,
                  *args,
                  **kwargs):
 
         self._params = ProcessParameters(
-            yaml_settings=yaml_params, sample=sample, seed=seed, sample_num=sample_num)
+            yaml_settings=yaml_params, sample=sample, seed=seed, sample_num=sample_num, replay_root=replay_root
+        )
+
+        # log if replay mode or not
+        self._replay = replay
+        
         # self._folder =
         # self._params.save()
         self._dump_parameters()
@@ -53,10 +56,12 @@ class BaseSUMOFunc:
         # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
+
     def _dump_parameters(self, ):
-        self._params.save_sa_values(
-            os.path.join(self._params.WORKING_FOLDER, 'sa_values.json')
-        )
+        if not self._replay:
+            self._params.save_sa_values(
+                os.path.join(self._params.WORKING_FOLDER, 'sa_values.json')
+            )
 
     def _replace_variable(self, d: dict) -> dict:
         return {key: self._params.handle_path(item) for key, item in d.items()}
@@ -66,10 +71,11 @@ class BaseSUMOFunc:
         return mod(cwd=self._params.WORKING_FOLDER, **self._params._sensitivity_analysis.output.arguments.kwargs)
 
     def _create_simulation(self, **kwargs):
-        mod = beefy_import(self._params.simulation_core.simulation_function.module)
+        mod = beefy_import(self._params.simulation_core.simulation_function.module, internal=False)
         
         _kwargs = self._replace_variable(self._params.simulation_core.simulation_function.arguments.kwargs)
 
+        # TODO: Fix this. Seems hacky
         _kwargs['random_seed'] = self._params.SEED
 
         return mod(
@@ -181,19 +187,20 @@ class BaseSUMOFunc:
         return output_file_path
 
     def post_processing(self, ) -> None:
+        # TODO: internal=False is not always true
+        mod = beefy_import(self._params.sensitivity_analysis.post_processing.module, internal=False)
 
-         mod = beefy_import(self._params.sensitivity_analysis.post_processing.module)
-
-         mod(
+        mod(
              *self._params.sensitivity_analysis.post_processing.arguments.args,
              **self._replace_variable(self._params.sensitivity_analysis.post_processing.arguments.kwargs)
          ).main()
 
 
     def cleanup(self, ) -> None:
-        # delete files
-        for f in glob.glob(os.path.join(self._params.WORKING_FOLDER, TEMP_PATTERN.join(['*'] * 2))):
-            os.remove(f)
+        # delete files, but only if not replay mode
+        if not self._replay:
+            for f in glob.glob(os.path.join(self._params.WORKING_FOLDER, TEMP_PATTERN.join(['*'] * 2))):
+                os.remove(f)
 
 
 # @ray.remote  # (num_cpus=2)
@@ -201,7 +208,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
 
-        super().__init__(yaml_settings, sample, seed, *args, **kwargs)
+        super().__init__(yaml_params=yaml_settings, sample=sample, seed=seed, *args, **kwargs)
 
         # self._output_handler = TotalEmissionsHandler(self._params)
         # self._simulation = beefy_import(self._params.simulation)
@@ -243,7 +250,6 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         # # self.implement_fleet_composition()
         # self._handle_matlab()
 
-        # TODO: turn this into a function and pass the correct parameters given YAML settings
         self._simulation = self._create_simulation(**simulation_kwargs)
 
         # run the simulation

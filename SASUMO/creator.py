@@ -40,9 +40,12 @@ class SASUMO:
         # save the settings to the new working folder
         self._settings.sensitivity_analysis.working_root = self._create_working_folder()
         
+
+        # it should save now because want to preserve the pre-run state. Should it watch and copy a 
         self._settings.save_myself(
             os.path.join(
                 self._settings.sensitivity_analysis.working_root,
+                # TODO move all these file name constants somewhere else
                 "settings.yaml"
             )
         )

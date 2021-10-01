@@ -10,9 +10,9 @@ import yaml
 # from dataclasses import dataclass
 import logging
 try:
-    from utils import path_constructor
+    from SASUMO.utils import path_constructor
 except ImportError:
-    from SASUMO.SASUMO.utils import path_constructor
+    from SASUMO.utils import path_constructor
 
 from .yaml_handler import Settings4SASUMO
 
@@ -239,15 +239,15 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
     It allows for logging and will save itself and the parameters inside of it to the "working folder"
     """
 
-    def __init__(self, yaml_settings: Settings4SASUMO, seed: int, sample: list, sample_num: int = None) -> None:
+    def __init__(self, yaml_settings: Settings4SASUMO, seed: int, sample: list, sample_num: int = None, replay_root: str = None) -> None:
         """ Handle creating the logger and the folder location """
 
         vars(self).update(vars(yaml_settings))
 
-
+        # create the working root if not replay_root
         self.WORKING_FOLDER = create_folder(
             self.sensitivity_analysis.working_root, unique_id=f"sample_{sample_num}" or None
-        )
+        ) if not replay_root else replay_root
 
         # _parse_replace_file_paths(self, self.WORKING_FOLDER)
 
@@ -300,9 +300,12 @@ class ProcessParameters(_FlexibleDict, Settings4SASUMO):
         self.logger.info(message)
 
     def disperse_sample(self, sample) -> None:
-        for _s, distribution in zip(sample, self.sensitivity_analysis.variables):
-            distribution.transform(_s)
-        
+        if isinstance(sample, dict):
+            for var_name, value in sample.items():
+                self.sensitivity_analysis.get_variable(var_name).distribution.transform(value) 
+        else:
+            for _s, distribution in zip(sample, self.sensitivity_analysis.variables):
+                distribution.transform(_s)
     
     def save_settings(self, ):
 

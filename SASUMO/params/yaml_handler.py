@@ -4,7 +4,7 @@ import shutil
 import pickle
 from dataclasses import dataclass
 from typing import Any, List, Tuple, Union
-
+from string import Template
 import yaml
 
 
@@ -152,6 +152,7 @@ class _SensitivityAnalysisVariable:
             List[object]: [description]
         """
         return [self]
+
 
 class SensitivityAnalysisGroup:
 
@@ -305,6 +306,10 @@ class _SensitivityAnalysisSettings:
             if isinstance(var, SensitivityAnalysisGroup) and var.generator
         ]
 
+    def get_variable(self, v_name):
+        for var in self.variables:
+            if var.name == v_name:
+                return var
 
 @dataclass
 class _SimFunctionCore:
@@ -396,7 +401,10 @@ class Settings4SASUMO(_Settings):
             self._yaml_settings_path = file_path
 
             with open(file_path, 'r') as f:
-                self._unpack_settings(yaml.safe_load(f))
+                
+                t = Template(f.read())
+                yamld = t.safe_substitute(dict(os.environ))
+                self._unpack_settings(yaml.safe_load(yamld))
 
         else:
             with open(file_path, 'rb') as f:
