@@ -246,10 +246,6 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         """
         simulation_kwargs = self.execute_generator_functions()
 
-        # self.create_veh_distribution()
-        # # self.implement_fleet_composition()
-        # self._handle_matlab()
-
         self._simulation = self._create_simulation(**simulation_kwargs)
 
         # run the simulation
