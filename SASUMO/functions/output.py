@@ -1,6 +1,6 @@
 import os
-from utils import path_constructor
-from utils import regex_fc_total
+from SASUMO.utils import path_constructor
+from SASUMO.utils import regex_fc_total
 
 
 class _OutputHandler:
@@ -37,9 +37,6 @@ class TotalEmissionsHandler(_OutputHandler):
         self._time_filter_upper = output_time_filter_upper
         self._sim_step = sim_step
         self._save_output = save_output
-
-    # def _load_xml(self):
-    #     yield from on_disk_xml_parser(self._emissions_xml, file_type="emissions")
 
     def _y(self, ):
         output = regex_fc_total(

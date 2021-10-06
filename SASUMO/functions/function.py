@@ -241,7 +241,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         This is the main function. It: 
             1. creates a folder location from where to work from
             2. generates the input files for the varying parameters
-            2. runs the specific runner. It should have a "main" method. 
+            3. runs the specific runner. It should have a "main" method. 
                I can create an abstract base class later
         """
         simulation_kwargs = self.execute_generator_functions()
