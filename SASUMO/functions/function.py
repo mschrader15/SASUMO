@@ -203,7 +203,6 @@ class BaseSUMOFunc:
                 os.remove(f)
 
 
-# @ray.remote  # (num_cpus=2)
 class EmissionsSUMOFunc(BaseSUMOFunc):
 
     def __init__(self, yaml_settings, sample, seed, *args, **kwargs):

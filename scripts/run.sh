@@ -1,10 +1,10 @@
-SETTINGS_FILE="/home/max/remote/airport-harper-sumo/SASUMO/input_files/no_fleet_composition.yaml"
+SETTINGS_FILE="/home/max/remote/airport-harper-sumo/SASUMO/input_files/car_following_params.yaml"
 
-# Getting the CPU Cores
-CPU_LINES="$(grep -oP '(?>cpu_cores:).(?:\d)+' $SETTINGS_FILE)"
-CPUS="$(grep -oP '(\d)+' <<< $CPU_LINES)"
+# # Getting the CPU Cores
+# CPU_LINES="$(grep -oP '(?>cpu_cores:).(?:\d)+' $SETTINGS_FILE)"
+# CPUS="$(grep -oP '(\d)+' <<< $CPU_LINES)"
 
-source /home/max/remote/airport-harper-sumo/venv/bin/activate
+# source /home/max/remote/airport-harper-sumo/venv/bin/activate
 
 # change these for your own system
 export SIMULATION_ROOT=/home/max/remote/airport-harper-sumo
@@ -16,9 +16,9 @@ export NOHUP_ERROR=$SENSITIVITY_ANALYSIS_OUTPUT/nohup.err
 ray stop
 
 # Start Ray
-ray start --head --port=6379  --num-cpus=$CPUS
+ray start --head --port=6379  #--num-cpus=$CPUS
 
 # Run Simulation
-nohup python SASUMO/SASUMO/creator.py $SETTINGS_FILE > $NOHUP 2> $NOHUP_ERROR < /dev/null &
+nohup python SASUMO/SASUMO/creator.py $SETTINGS_FILE  > $NOHUP 2> $NOHUP_ERROR < /dev/null &
 
 tail $NOHUP -f
