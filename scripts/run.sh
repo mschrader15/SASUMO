@@ -21,4 +21,4 @@ ray start --head --port=6379  #--num-cpus=$CPUS
 # Run Simulation
 nohup python SASUMO/SASUMO/creator.py $SETTINGS_FILE  > $NOHUP 2> $NOHUP_ERROR < /dev/null &
 
-tail $NOHUP -f
+tail $NOHUP -fs
