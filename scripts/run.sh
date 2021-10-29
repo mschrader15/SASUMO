@@ -1,4 +1,8 @@
-SETTINGS_FILE="/home/max/remote/airport-harper-sumo/SASUMO/input_files/car_following_params.yaml"
+# BUILD SASUMO
+. ./SASUMO/scripts/install.sh ./
+
+
+SETTINGS_FILE="/home/max/remote/airport-harper-sumo/SASUMO/input_files/car_following_simple.yaml"
 
 # # Getting the CPU Cores
 # CPU_LINES="$(grep -oP '(?>cpu_cores:).(?:\d)+' $SETTINGS_FILE)"
@@ -21,4 +25,4 @@ ray start --head --port=6379  #--num-cpus=$CPUS
 # Run Simulation
 nohup python SASUMO/SASUMO/creator.py $SETTINGS_FILE  > $NOHUP 2> $NOHUP_ERROR < /dev/null &
 
-tail $NOHUP -fs
+tail $NOHUP -f

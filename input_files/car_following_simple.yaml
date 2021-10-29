@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: Car_Following_Params_V3_630AM
+  name: Simplified_Car_Following
   author: mcschrader@crimson.ua.edu
 
 SensitivityAnalysis:
@@ -45,15 +45,15 @@ SensitivityAnalysis:
               min: 3
               max: 6
         
-        Decel:
-          variable_name: decel
-          type: car_following_parameter
-          distribution: 
-            type: uniform
-            params:
-              width: 0.25
-              min: 3
-              max: 7
+        # Decel:
+        #   variable_name: decel
+        #   type: car_following_parameter
+        #   distribution: 
+        #     type: uniform
+        #     params:
+        #       width: 0.25
+        #       min: 3
+        #       max: 7
 
         speedFactor:
           variable_name: speedFactor
@@ -65,16 +65,30 @@ SensitivityAnalysis:
               min: 0.75
               max: 1.5
    
-        minGap:
-          variable_name: minGap
-          type: car_following_parameter
-          distribution: 
-            type: uniform
-            params:
-              width: 0.25
-              min: 0.5
-              max: 3
+        # minGap:
+        #   variable_name: minGap
+        #   type: car_following_parameter
+        #   distribution: 
+        #     type: uniform
+        #     params:
+        #       width: 0.25
+        #       min: 0.5
+        #       max: 3
   
+        # generator_arguments: &PersonalCarArguments         
+        #   common_parameters: |
+        #     length;uniform(4,6)
+        #     param; mass; normal(1190,300); [800, 1700]
+        #     vClass;passenger
+        #     carFollowModel;IDM
+        #     emissionClass;PHEMlight/PC_G_EU4
+        #     lcKeepRight;uniform(2, 4)
+        #     actionStepLength;uniform(0.8, 1.1)
+        #     jmDriveAfterYellowTime; uniform(0, 2)
+        #     impatience; normal(0.3, 0.1); [0, 1]
+        #     lcAssertive; normal(4, 1); [2, 6]
+        #     lcCooperative; normal(1, 0.1);
+
         generator_arguments: &PersonalCarArguments         
           common_parameters: |
             length;uniform(4,6)
@@ -82,14 +96,8 @@ SensitivityAnalysis:
             vClass;passenger
             carFollowModel;IDM
             emissionClass;PHEMlight/PC_G_EU4
-            lcKeepRight;uniform(2, 4)
-            actionStepLength;uniform(0.8, 1.1)
             jmDriveAfterYellowTime; uniform(0, 2)
-            impatience; normal(0.3, 0.1); [0, 1]
-            lcAssertive; normal(4, 1); [2, 6]
-            lcCooperative; normal(1, 0.1);
-
-
+            
       generator:
         function: create_veh_distribution
         arguments:
@@ -138,14 +146,9 @@ SimulationCore:
       path: ${SIMULATION_ROOT}
       arguments: # Not including the generator arguments marked for being passed to simulation
         kwargs:
-          settings: /home/max/tmp/airport_harper_sumo_sasumo/Car_Following_Params_V3_630AM/params.json
+          settings: /home/max/tmp/airport_harper_sumo_sasumo/Simplified_Car_Following/params.json
           simulation_output_path: ${cwd}
           emissions_file_name: __temp__emissions.out.xml
 
 FileManager:
   - None
-
-
-
-
-
