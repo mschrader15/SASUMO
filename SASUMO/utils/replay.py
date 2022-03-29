@@ -1,6 +1,6 @@
 from copy import deepcopy
 import os
-import json
+import json5 as json
 import sys
 import click
 

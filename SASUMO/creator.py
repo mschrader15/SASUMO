@@ -2,7 +2,7 @@
 import os
 import sys
 import random
-import json
+import json5 as json
 import csv
 from typing import List
 

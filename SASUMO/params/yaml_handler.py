@@ -1,4 +1,4 @@
-import json
+import json5 as json
 import os
 import shutil
 import pickle
