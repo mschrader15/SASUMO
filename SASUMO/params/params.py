@@ -3,7 +3,7 @@ import sys
 import os
 # from copy import deepcopy
 from typing import Any, Dict, Hashable, List, Union
-import json
+import json5 as json
 import uuid
 import yaml
 # import pendulum
