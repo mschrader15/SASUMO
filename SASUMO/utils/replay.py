@@ -9,6 +9,7 @@ from SASUMO.params import Settings4SASUMO
 # from ..functions import 
 from SASUMO.utils import path_constructor, beefy_import
 
+
 class ReplaySASUMO:
 
     def __init__(self, replay_root: str, sample_num: int, new_folder_location: str = None) -> None:
