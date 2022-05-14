@@ -1,24 +1,33 @@
 from importlib import import_module
 import os
 import csv
+from tempfile import TemporaryFile
 from lxml import etree
 from xml.dom import minidom
 import re
 import mmap
 
 
-def path_constructor(path: str, cwd: str = None) -> str:
-    ''' Extract the matched value, expand env variable, and replace the match '''
-    path_matcher = re.compile(r'\$\{([^}^{]+)\}')
-    match = path_matcher.match(path)
-    if match:
-        env_var = match.group()[2:-1]
-        if env_var == 'cwd':
-            return cwd + path[match.end():]
-        try:
-            return os.environ.get(env_var) + path[match.end():]
-        except TypeError:
-            raise Exception(env_var)
+# def path_constructor(path: str, cwd: str = None) -> str:
+#     ''' Extract the matched value, expand env variable, and replace the match '''
+#     path_matcher = re.compile(r'\$\{([^}^{]+)\}')
+#     match = path_matcher.match(path)
+#     if match:
+#         env_var = match.group()[2:-1]
+#         if env_var == 'cwd':
+#             return cwd + path[match.end():]
+#         try:
+#             return os.environ.get(env_var) + path[match.end():]
+#         except TypeError:
+#             raise Exception(env_var)
+#     return path
+
+
+def create_folder(path, safe: bool = True) -> str:
+    os.makedirs(
+        path,
+        exist_ok=not safe
+    )
     return path
 
 
