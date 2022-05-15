@@ -8,21 +8,6 @@ import re
 import mmap
 
 
-# def path_constructor(path: str, cwd: str = None) -> str:
-#     ''' Extract the matched value, expand env variable, and replace the match '''
-#     path_matcher = re.compile(r'\$\{([^}^{]+)\}')
-#     match = path_matcher.match(path)
-#     if match:
-#         env_var = match.group()[2:-1]
-#         if env_var == 'cwd':
-#             return cwd + path[match.end():]
-#         try:
-#             return os.environ.get(env_var) + path[match.end():]
-#         except TypeError:
-#             raise Exception(env_var)
-#     return path
-
-
 def create_folder(path, safe: bool = True) -> str:
     os.makedirs(
         path,
@@ -52,8 +37,6 @@ class Parser:
         # self._fields_simp = xml_fields
         self._parse_function = {
             'emissions': self._parse_and_write_emissions,
-            #   'e1': parse_and_write_detector,
-            #   'e2': parse_and_write_detector
         }[file_type]
 
     @staticmethod
@@ -118,7 +101,7 @@ class FleetComposition:
             for node in t.getElementsByTagName(route_type):
                 self._replace_veh_type(node, )
 
-        with open(self._r if not output_path else output_path, 'w') as f:
+        with open(output_path or self._r, 'w') as f:
             f.write(t.toxml())
 
     def _replace_veh_type(self, element: minidom.Element) -> None:

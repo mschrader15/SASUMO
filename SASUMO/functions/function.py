@@ -14,8 +14,7 @@ import numpy as np
 import ray
 
 # internal imports
-from SASUMO.params import ProcessParameters, Settings4SASUMO, ProcessSASUMOConf
-from SASUMO.params import SensitivityAnalysisGroup
+from SASUMO.params import ProcessSASUMOConf
 from SASUMO.utils import FleetComposition, beefy_import
 from SASUMO.functions.output import TotalEmissionsHandler
 
@@ -91,10 +90,10 @@ class BaseSUMOFunc:
 
     def create_veh_distribution(
         self,
-        *args: List[SensitivityAnalysisGroup],
+        *args: List[object],
         output_file_name,
         distribution_size,
-        delta: SensitivityAnalysisGroup = None,
+        delta = None,
     ) -> None:
         """
         Creating the text input file

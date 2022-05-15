@@ -1,5 +1,4 @@
 import os
-from SASUMO.utils import path_constructor
 from SASUMO.utils import regex_fc_total
 
 
@@ -34,7 +33,7 @@ class TotalEmissionsHandler(_OutputHandler):
 
         super().__init__(cwd)
 
-        self._emissions_xml = path_constructor(emissions_xml, self._cwd)
+        self._emissions_xml = emissions_xml
         self._time_filter_lower = output_time_filter_lower
         self._time_filter_upper = output_time_filter_upper
         self._sim_step = sim_step

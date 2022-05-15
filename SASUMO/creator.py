@@ -3,20 +3,16 @@ import os
 import sys
 import random
 import json5 as json
-import csv
 from typing import List, Tuple
 
 import ray
 import click
 import numpy as np
 from copy import deepcopy
-from datetime import datetime
 
 # internal imports
 from params import SASUMOConf
-from params import ProcessParameters
-from functions import BaseSUMOFunc
-from utils import path_constructor, beefy_import, create_folder
+from utils import beefy_import, create_folder
 
 # external imports
 from SALib.analyze import sobol
@@ -37,11 +33,11 @@ class SASUMO:
         self._settings = SASUMOConf(yaml_file_path)
 
         # try to create the folder to work in.
-        create_folder(self._settings.Metadata.simulation_root)
+        create_folder(self._settings.Metadata.output)
 
         # save a copy of the settings file
         self._settings.to_yaml(
-            os.path.join(self._settings.Metadata.simulation_root, "sasumo_params.yaml"),
+            os.path.join(self._settings.Metadata.output, "sasumo_params.yaml"),
             resolve=True,
         )
 
@@ -58,7 +54,7 @@ class SASUMO:
 
         # import the desired module
         self._f = None
-        self.main_fn_helper(self._settings.SensitivityAnalysis.manager_function.module)
+        self.main_fn_helper(self._settings.SensitivityAnalysis.ManagerFunction.module)
 
     def main_fn_helper(self, module_path: str) -> None:
         """
@@ -74,8 +70,8 @@ class SASUMO:
     ):
 
         for new_path in [
-            self._settings.SimulationCore.manager_function.get("path", ""),
-            self._settings.SimulationCore.simulation_function.get("path", ""),
+            self._settings.SimulationCore.get("ManagerFunction", {}).get("path", ""),
+            self._settings.SimulationCore.SimulationFunction.get("path", ""),
         ]:
             if new_path:
                 sys.path.append(new_path)
@@ -90,16 +86,14 @@ class SASUMO:
 
         sample = saltelli.sample(
             self._problem,
-            self._settings.sensitivity_analysis.N,
-            calc_second_order=self._settings.sensitivity_analysis.calc_second_order,
+            self._settings.SensitivityAnalysis.N,
+            calc_second_order=self._settings.SensitivityAnalysis.calc_second_order,
         )
 
         print(f"Running {len(sample)} simulations")
 
         np.savetxt(
-            os.path.join(
-                self._settings.sensitivity_analysis.working_root, SAMPLES_FILE_NAME
-            ),
+            os.path.join(self._settings.Metadata.output, SAMPLES_FILE_NAME),
             sample,
         )
 
@@ -112,7 +106,7 @@ class SASUMO:
         return {
             "num_vars": len(self._settings.SensitivityAnalysis.Variables),
             "names": [
-                var.name
+                var.variable_name
                 for var in self._settings.SensitivityAnalysis.Variables.values()
             ],
             "bounds": [
@@ -131,7 +125,10 @@ class SASUMO:
         Returns:
             Tuple[float, float]:
         """
-        return variable_obj.distribution.min, variable_obj.distribution.max
+        return (
+            variable_obj.distribution.params.get("min", 0),
+            variable_obj.distribution.params.max,
+        )
 
     def _save_problem(
         self,
@@ -139,7 +136,7 @@ class SASUMO:
 
         with open(
             os.path.join(
-                self._settings.sensitivity_analysis.working_root,
+                self._settings.Metadata.output,
                 PROBLEM_DESCRIPT_FILE_NAME,
             ),
             "w",
@@ -190,27 +187,24 @@ class SASUMO:
         self,
     ) -> None:
 
+        index = 0
+
         self._f(
-            yaml_settings=deepcopy(self._settings),
-            sample=self._samples[0],
-            seed=self._generate_seed(),
-            sample_num=0,
+            yaml_params=self._settings.generate_process(
+                process_var=self._samples[index], process_id=str(index)
+            ),
         ).run()
 
     def save_results(self, sobol_analysis: list, results: list) -> None:
         # save the sobol analysis
         for i, result in enumerate(sobol_analysis.to_df()):
             result.to_csv(
-                os.path.join(
-                    self._settings.sensitivity_analysis.working_root, SOBOL_ANALYSIS(i)
-                )
+                os.path.join(self._settings.Metadata.output, SOBOL_ANALYSIS(i))
             )
 
         # save the results
         np.savetxt(
-            os.path.join(
-                self._settings.sensitivity_analysis.working_root, RESULTS_NAME
-            ),
+            os.path.join(self._settings.Metadata.output, RESULTS_NAME),
             np.array(results),
         )
 
@@ -225,13 +219,13 @@ def run(debug, settings_file):
     s = SASUMO(settings_file)
 
     if debug:
-        if "Remote" in s._settings.simulation_core.manager_function.module:
-            s._settings.simulation_core.manager_function.module = (
-                s._settings.simulation_core.manager_function.module.replace(
+        if "Remote" in s._settings.SensitivityAnalysis.ManagerFunction.module:
+            s._settings.SensitivityAnalysis.ManagerFunction.module = (
+                s._settings.SensitivityAnalysis.ManagerFunction.module.replace(
                     "Remote", ""
                 )
             )
-            s.main_fn_helper(s._settings.simulation_core.manager_function.module)
+            s.main_fn_helper(s._settings.SensitivityAnalysis.ManagerFunction.module)
         s.debug_main()
     else:
         try:

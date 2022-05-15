@@ -3,3 +3,4 @@ modin
 ray[default]
 numba
 omegaconf
+lxml

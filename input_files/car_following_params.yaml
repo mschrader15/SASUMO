@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: Car_Following_Params_V3_630AM
+  name: Car_Following_Params_Test
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -10,24 +10,23 @@ Metadata:
 
 SensitivityAnalysis:
 
-  working_root: ${Metadata.output} 
+  cpu_cores: 1 
   # N from N * (2D + 2) samples, should be a power of 2
   N: 128
   calc_second_order: True
-  cpu_cores: 60
   preprocessing: None
-  manager_function: 
+  ManagerFunction: 
     module: functions.RemoteEmissionsSUMOFunc
     # sensitivity analysis sample is inherently the first argument 
     arguments:
   
-  variables: 
+  Variables: 
     # CarFollowingParameters:
     #   PersonalCar:
     Tau:
       variable_name: tau
       group: car_following_parameter
-      val: "???" 
+      val: ??? 
       distribution:
         type: uniform
         params:
@@ -38,7 +37,7 @@ SensitivityAnalysis:
     Delta:
       variable_name: delta
       group: car_following_parameter
-      val: "???"
+      val: ???
       distribution:
         type: uniform
         params:
@@ -49,7 +48,7 @@ SensitivityAnalysis:
     Accel:
       variable_name: accel
       group: car_following_parameter
-      val: "???"
+      val: ???
       distribution: 
         type: uniform
         params:
@@ -60,7 +59,7 @@ SensitivityAnalysis:
     Decel:
       variable_name: decel
       group: car_following_parameter
-      val: "???"
+      val: ???
       distribution: 
         type: uniform
         params:
@@ -71,7 +70,7 @@ SensitivityAnalysis:
     speedFactor:
       variable_name: speedFactor
       group: car_following_parameter
-      val: "???"
+      val: ???
       distribution: 
         type: uniform
         params:
@@ -82,7 +81,7 @@ SensitivityAnalysis:
       minGap:
         variable_name: minGap
         group: car_following_parameter
-        val: "???"
+        val: ???
         distribution: 
           type: uniform
           params:
@@ -138,12 +137,12 @@ SimulationCore:
   cpu_cores: 60
   preprocessing: None
 
-  simulation_function:  
-      module: runners.NoTraciSimulationMonteCarlo
+  SimulationFunction:  
+      module: runners.sasumo.NoTraciSimulationSASUMO
       path: ${Metadata.simulation_root}
       arguments: # Not including the generator arguments marked for being passed to simulation
         kwargs:
-          settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20.json
+          settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
           simulation_output_path: ${Metadata.cwd}
           emissions_file_name: ${SensitivityAnalysis.Output.arguments.kwargs.emissions_xml}
           seed: ${Metadata.random_seed}
