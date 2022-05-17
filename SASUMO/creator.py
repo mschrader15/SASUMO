@@ -11,8 +11,8 @@ import numpy as np
 from copy import deepcopy
 
 # internal imports
-from params import SASUMOConf
-from utils import beefy_import, create_folder
+from SASUMO.params import SASUMOConf
+from SASUMO.utils import beefy_import, create_folder
 
 # external imports
 from SALib.analyze import sobol
@@ -177,7 +177,9 @@ class SASUMO:
 
         p = self._f.remote(
             yaml_settings=self._settings.generate_process(
-                process_var=self._samples[index], process_id=str(index)
+                process_var=self._samples[index], 
+                process_id=str(index),
+                random_seed=self._generate_seed()
             ),
             sample_num=index,
         )
@@ -191,7 +193,9 @@ class SASUMO:
 
         self._f(
             yaml_params=self._settings.generate_process(
-                process_var=self._samples[index], process_id=str(index)
+                process_var=self._samples[index], 
+                process_id=str(index),
+                random_seed=self._generate_seed()
             ),
         ).run()
 

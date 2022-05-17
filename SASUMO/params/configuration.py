@@ -1,6 +1,7 @@
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Any, List, Tuple
+import os
+from typing import Any, List
+import logging
 
 from datetime import datetime
 
@@ -15,17 +16,49 @@ class ProcessSASUMOConf:
         process_var: List,
         process_id: str,
         missing_dotlist: List[str],
+        random_seed: int,
     ) -> None:
 
         # set the base configuration
         self._base_conf = base_conf
 
+        # 
+        # self._base_conf.register
+
         # save the process id
         self._base_conf.Metadata.run_id = process_id
-
+        self._base_conf.Metadata.random_seed = random_seed
         self.update_values(process_var)
-
+        
+        # resolve the configuration, to save comp time later. Nothing will change from here on out
         self._missing_dotlist = missing_dotlist
+
+        # create a logger
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)
+        # self._create_log()
+
+    def __getattr__(self, __name: str) -> Any:
+        try:
+            return self._base_conf[__name]
+        except KeyError:
+            return self.__getattribute__(__name)
+
+    def create_logger(
+        self,
+    ) -> None:
+        fh = logging.FileHandler(
+            os.path.join(self._base_conf.Metadata.cwd, "simulation.log")
+        )
+        fh.setLevel(logging.INFO)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+
+    def log_info(self, message: str) -> None:
+        self.logger.info(message)
 
     def update_values(self, process_var: List) -> None:
 
@@ -34,8 +67,14 @@ class ProcessSASUMOConf:
         ):
             var.val = float(process_var)
 
-    def to_yaml(self, file_path) -> None:
-        self._base_conf.masked_copy(self._missing_dotlist)
+    def to_yaml(self, file_path: str) -> None:
+        new_conf = [
+            "=".join((dot_list, str(OmegaConf.select(self._base_conf, dot_list))))
+            for dot_list in self._missing_dotlist
+        ]
+        # s = OmegaConf.masked_copy(self._base_conf, self._missing_dotlist)
+        with open(file_path, "w") as f:
+            OmegaConf.save(config=OmegaConf.from_dotlist(new_conf), f=f, resolve=False)
 
 
 class SASUMOConf:
@@ -45,11 +84,11 @@ class SASUMOConf:
     ) -> None:
 
         OmegaConf.register_new_resolver(
-            "datetime", lambda _: datetime.now().isoformat(), use_cache=True
+            "datetime", lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"), use_cache=True
         )
 
         OmegaConf.register_new_resolver(
-            "group", lambda group: self._get_group(group), use_cache=True
+            "group", lambda x, *,  _root_: self._get_group(x,  _root_, )
         )
 
         self._s = OmegaConf.load(file_path)
@@ -63,12 +102,14 @@ class SASUMOConf:
         except KeyError:
             return self.__getattribute__(__name)
 
-    def _get_group(self, group: str):
+    @staticmethod
+    def _get_group(group: str, root: object):
         # This is probably not generalizable enough
         # TODO make this traverse the whole tree
+        # TODO: resolve
         return [
             g
-            for _, g in self.SensitivityAnalysis.variables.items()
+            for _, g in root.SensitivityAnalysis.Variables.items()
             if g.get("group", False) == group
         ]
 
@@ -106,16 +147,19 @@ class SASUMOConf:
             key_list = [key]
             self._recursive_missing_finder(value, key_list, missing_key_list)
 
-        # create a sample conf object to save for each run
+        # update the missing dotlist
         self._missing_dotlist = [".".join(_key_list) for _key_list in missing_key_list]
 
-    def generate_process(self, process_var: List, process_id: str) -> ProcessSASUMOConf:
+    def generate_process(
+        self, process_var: List, process_id: str, random_seed: int
+    ) -> ProcessSASUMOConf:
 
         return ProcessSASUMOConf(
-            OmegaConf.structured(self._s),
+            deepcopy(OmegaConf.structured(self._s)),
             process_var=process_var,
             process_id=process_id,
             missing_dotlist=self._missing_dotlist,
+            random_seed=random_seed,
         )
 
 

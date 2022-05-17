@@ -9,6 +9,7 @@ import uuid
 from abc import ABCMeta
 from copy import deepcopy
 from datetime import datetime
+from SASUMO.utils.utils import create_folder
 
 import numpy as np
 import ray
@@ -55,25 +56,30 @@ class BaseSUMOFunc:
         self,
     ):
         if not self._replay:
+            # create the directory
+            create_folder(self._params.Metadata.cwd)
+            # save the file
             self._params.to_yaml(os.path.join(self._params.Metadata.cwd, "params.yaml"))
+            # create a logger
+            self._params.create_logger()
 
     def _create_output_handler(
         self,
     ):
-        mod = beefy_import(self._params.SensitivityAnalysis.output.module)
+        mod = beefy_import(self._params.SensitivityAnalysis.Output.module)
         return mod(
             cwd=self._params.Metadata.cwd,
-            **self._params.SensitivityAnalysis.output.arguments.kwargs,
+            **self._params.SensitivityAnalysis.Output.arguments.kwargs,
         )
 
     def _create_simulation(self, **kwargs):
         mod = beefy_import(
-            self._params.SimulationCore.simulation_function.module, internal=False
+            self._params.SimulationCore.SimulationFunction.module, internal=False
         )
 
         return mod(
-            *self._params.SimulationCore.simulation_function.arguments.args or [],
-            **self._params.SimulationCore.simulation_function.arguments.kwargs or {},
+            *self._params.SimulationCore.SimulationFunction.arguments.get("args", []),
+            **self._params.SimulationCore.SimulationFunction.arguments.get("kwargs", {}),
             **kwargs,
         )
 
@@ -93,7 +99,8 @@ class BaseSUMOFunc:
         *args: List[object],
         output_file_name,
         distribution_size,
-        delta = None,
+        distribution_common,
+        delta=None,
     ) -> None:
         """
         Creating the text input file
@@ -102,18 +109,16 @@ class BaseSUMOFunc:
             self._params.Metadata.cwd, f"{TEMP_PATTERN}vehDist.txt"
         )
 
-        veh_dist_file = os.path.join(
-            self._params.Metadata.cwd, TEMP_PATTERN + output_file_name
-        )
+        for type_group in args:
 
-        for group in args:
+            group_name = type_group[0].group
 
-            text_parameters = group.generator_arguments.common_parameters
+            text_parameters = distribution_common[group_name].distribution_parameters
 
             # compose the variables
             vary_lines = []
-            for var in group.variables:
-                center = var.distribution.params.sa_value
+            for var in type_group:
+                center = var.val
                 width = var.distribution.params.width
                 vary_lines.append(
                     f"{var.variable_name};uniform({center - width / 2},{center + width / 2})"
@@ -121,7 +126,7 @@ class BaseSUMOFunc:
 
             if delta:
                 # add in the delta (if delta)
-                center = delta.distribution.params.sa_value
+                center = var.val
                 width = delta.distribution.params.width
                 vary_lines.append(
                     f"{delta.variable_name};uniform({center - width / 2},{center + width / 2})"
@@ -140,9 +145,9 @@ class BaseSUMOFunc:
                     f"{SUMO_HOME}/tools/createVehTypeDistribution.py",
                     tmp_dist_input_file,
                     "--name",
-                    group.name,
+                    distribution_common[group_name].distribution_name,
                     "-o",
-                    veh_dist_file,
+                    output_file_name,
                     "--size",
                     str(distribution_size),
                 ]
@@ -150,7 +155,7 @@ class BaseSUMOFunc:
 
         os.remove(tmp_dist_input_file)
 
-        return veh_dist_file
+        return output_file_name
 
     def fleet_composition(
         self, base_route_file, fleet_composition, controlled_dist_name, other_dist_name
