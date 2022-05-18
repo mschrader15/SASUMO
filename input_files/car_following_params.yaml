@@ -138,6 +138,7 @@ SimulationCore:
   
   cpu_cores: 60
   preprocessing: None
+  output_path: ${Metadata.cwd}
 
   SimulationFunction:  
       module: runners.sasumo.NoTraciSimulationSASUMO
@@ -145,7 +146,7 @@ SimulationCore:
       arguments: # Not including the generator arguments marked for being passed to simulation
         kwargs:
           settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
-          simulation_output_path: ${Metadata.cwd}
+          simulation_output_path: ${SimulationCore.output_path}
           emissions_file_name: ${SensitivityAnalysis.Output.arguments.kwargs.emissions_xml}
           seed: ${Metadata.random_seed}
         

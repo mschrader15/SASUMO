@@ -1,5 +1,6 @@
 from copy import deepcopy
 import os
+from random import sample
 from typing import Any, List
 import logging
 
@@ -7,6 +8,48 @@ from datetime import datetime
 
 
 from omegaconf import OmegaConf
+
+
+OmegaConf.register_new_resolver(
+    "datetime",
+    lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"),
+    use_cache=True,
+)
+
+OmegaConf.register_new_resolver(
+    "group",
+    lambda x, *, _root_: SASUMOConf.get_group(
+        x,
+        _root_,
+    ),
+)
+
+
+class ReplayProcessConf:
+    def __init__(
+        self,
+        yaml_params: object,
+        run_id: str,
+        new_dir: str = "replay",
+        sample_yaml_name: str = "params.yaml",
+    ) -> None:
+
+        # write the run id
+        yaml_params.Metadata.run_id = run_id
+
+        self._base_conf = OmegaConf.merge(
+            yaml_params.to_omega(),
+            OmegaConf.load(os.path.join(yaml_params.Metadata.cwd, sample_yaml_name)),
+        )
+
+    def __getattr__(self, __name: str) -> Any:
+        try:
+            return self._base_conf[__name]
+        except KeyError:
+            return self.__getattribute__(__name)
+
+    def update_simulation_output(self, path: str) -> None:
+        self._base_conf.SimulationCore.output_path = path
 
 
 class ProcessSASUMOConf:
@@ -26,7 +69,7 @@ class ProcessSASUMOConf:
         self._base_conf.Metadata.run_id = process_id
         self._base_conf.Metadata.random_seed = random_seed
         self.update_values(process_var)
-        
+
         # resolve the configuration, to save comp time later. Nothing will change from here on out
         self._missing_dotlist = missing_dotlist
 
@@ -34,6 +77,11 @@ class ProcessSASUMOConf:
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         # self._create_log()
+
+    def to_omega(
+        self,
+    ):
+        return self._base_conf
 
     def __getattr__(self, __name: str) -> Any:
         try:
@@ -80,14 +128,6 @@ class SASUMOConf:
         file_path: str,
     ) -> None:
 
-        OmegaConf.register_new_resolver(
-            "datetime", lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"), use_cache=True
-        )
-
-        OmegaConf.register_new_resolver(
-            "group", lambda x, *,  _root_: self._get_group(x,  _root_, )
-        )
-
         self._s = OmegaConf.load(file_path)
 
         # set the missing keys
@@ -100,7 +140,7 @@ class SASUMOConf:
             return self.__getattribute__(__name)
 
     @staticmethod
-    def _get_group(group: str, root: object):
+    def get_group(group: str, root: object):
         # This is probably not generalizable enough
         # TODO make this traverse the whole tree
         # TODO: resolve
@@ -109,6 +149,11 @@ class SASUMOConf:
             for _, g in root.SensitivityAnalysis.Variables.items()
             if g.get("group", False) == group
         ]
+
+    def to_omega(
+        self,
+    ):
+        return self._s
 
     def to_yaml(self, file_path: str, resolve: bool = True):
         if resolve:

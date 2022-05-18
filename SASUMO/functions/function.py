@@ -1,15 +1,9 @@
 import glob
-import importlib
 import os
 from pathlib import Path
 import subprocess
-import sys
-from typing import List
-import uuid
-from abc import ABCMeta
-from copy import deepcopy
-from datetime import datetime
-from SASUMO.utils.utils import create_folder
+from typing import Any, List, Union
+
 
 import numpy as np
 import ray
@@ -17,13 +11,8 @@ import ray
 # internal imports
 from SASUMO.params import ProcessSASUMOConf
 from SASUMO.utils import FleetComposition, beefy_import
-from SASUMO.functions.output import TotalEmissionsHandler
-
-# from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
-
-
-# import subprocess
-# from sumolib.vehicle import CreateMultiVehTypeDistributions
+from SASUMO.params.configuration import ReplayProcessConf
+from SASUMO.utils.utils import create_folder
 
 TEMP_PATTERN = "__temp__"
 SUMO_HOME = os.environ.get("SUMO_HOME")
@@ -32,7 +21,7 @@ SUMO_HOME = os.environ.get("SUMO_HOME")
 class BaseSUMOFunc:
     def __init__(
         self,
-        yaml_params: dict,
+        yaml_params: Union[dict, ReplayProcessConf],
         replay: bool = False,
         replay_root: str = None,
         *args,
@@ -40,7 +29,10 @@ class BaseSUMOFunc:
     ):
 
         # create the yaml params
-        self._params = ProcessSASUMOConf(**yaml_params)
+        if isinstance(yaml_params, ReplayProcessConf):
+            self._params = yaml_params
+        else:
+            self._params = ProcessSASUMOConf(**yaml_params)
 
         # log if replay mode or not
         self._replay = replay
@@ -79,7 +71,9 @@ class BaseSUMOFunc:
 
         return mod(
             *self._params.SimulationCore.SimulationFunction.arguments.get("args", []),
-            **self._params.SimulationCore.SimulationFunction.arguments.get("kwargs", {}),
+            **self._params.SimulationCore.SimulationFunction.arguments.get(
+                "kwargs", {}
+            ),
             **kwargs,
         )
 
@@ -193,7 +187,9 @@ class BaseSUMOFunc:
 
         mod(
             *self._params.SensitivityAnalysis.PostProcessing.arguments.get("args", ()),
-            **self._params.SensitivityAnalysis.PostProcessing.arguments.get("kwargs", {}),
+            **self._params.SensitivityAnalysis.PostProcessing.arguments.get(
+                "kwargs", {}
+            ),
         ).main()
 
     def cleanup(
@@ -205,6 +201,9 @@ class BaseSUMOFunc:
                 os.path.join(self._params.Metadata.cwd, TEMP_PATTERN.join(["*"] * 2))
             ):
                 os.remove(f)
+
+    def run_simulation(self, *args, **kwargs) -> Any:
+        return self._create_simulation(*args, **kwargs).main()
 
 
 class EmissionsSUMOFunc(BaseSUMOFunc):
@@ -271,8 +270,14 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
 @ray.remote
 class RemoteEmissionsSUMOFunc(EmissionsSUMOFunc):
-
-    def __init__(self, yaml_params: dict, replay: bool = False, replay_root: str = None, *args, **kwargs):
+    def __init__(
+        self,
+        yaml_params: dict,
+        replay: bool = False,
+        replay_root: str = None,
+        *args,
+        **kwargs,
+    ):
         print("initialized the runner")
         super().__init__(yaml_params, replay, replay_root, *args, **kwargs)
 

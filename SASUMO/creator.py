@@ -242,7 +242,8 @@ def run(debug, smoke_test, settings_file):
         except (ConnectionError, RuntimeError):
             print("Starting Ray from python instead")
             # if smoke_test:
-            ray.init(local_mode=smoke_test)
+            # ray.init(local_mode=smoke_test)
+            ray.init()
             
 
         results = sorted([res for res in s.main(smoke_test) if res], key=lambda x: x[1])
