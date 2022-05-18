@@ -32,7 +32,7 @@ SUMO_HOME = os.environ.get("SUMO_HOME")
 class BaseSUMOFunc:
     def __init__(
         self,
-        yaml_params: ProcessSASUMOConf,
+        yaml_params: dict,
         replay: bool = False,
         replay_root: str = None,
         *args,
@@ -40,7 +40,7 @@ class BaseSUMOFunc:
     ):
 
         # create the yaml params
-        self._params = yaml_params
+        self._params = ProcessSASUMOConf(**yaml_params)
 
         # log if replay mode or not
         self._replay = replay
@@ -142,6 +142,7 @@ class BaseSUMOFunc:
 
             subprocess.run(
                 [
+                    "python",
                     f"{SUMO_HOME}/tools/createVehTypeDistribution.py",
                     tmp_dist_input_file,
                     "--name",
@@ -187,12 +188,12 @@ class BaseSUMOFunc:
     ) -> None:
         # TODO: internal=False is not always true, maybe a usecase for retry
         mod = beefy_import(
-            self._params.SensitivityAnaylsis.PostProcessing.module, internal=False
+            self._params.SensitivityAnalysis.PostProcessing.module, internal=False
         )
 
         mod(
-            *self._params.SensitivityAnaylsis.PostProcessing.arguments.args,
-            **self._params.SensitivityAnaylsis.PostProcessing.arguments.kwargs,
+            *self._params.SensitivityAnalysis.PostProcessing.arguments.get("args", ()),
+            **self._params.SensitivityAnalysis.PostProcessing.arguments.get("kwargs", {}),
         ).main()
 
     def cleanup(
@@ -209,7 +210,7 @@ class BaseSUMOFunc:
 class EmissionsSUMOFunc(BaseSUMOFunc):
     def __init__(
         self,
-        yaml_params: ProcessSASUMOConf,
+        yaml_params: dict,
         replay: bool = False,
         replay_root: str = None,
         *args,
@@ -270,9 +271,10 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
 
 @ray.remote
 class RemoteEmissionsSUMOFunc(EmissionsSUMOFunc):
-    def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
 
-        super().__init__(yaml_settings, sample, seed, *args, **kwargs)
+    def __init__(self, yaml_params: dict, replay: bool = False, replay_root: str = None, *args, **kwargs):
+        print("initialized the runner")
+        super().__init__(yaml_params, replay, replay_root, *args, **kwargs)
 
     @ray.method(num_returns=1)
     def run(

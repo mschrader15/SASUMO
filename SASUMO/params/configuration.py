@@ -12,7 +12,7 @@ from omegaconf import OmegaConf
 class ProcessSASUMOConf:
     def __init__(
         self,
-        base_conf: object,
+        yaml_params: object,
         process_var: List,
         process_id: str,
         missing_dotlist: List[str],
@@ -20,10 +20,7 @@ class ProcessSASUMOConf:
     ) -> None:
 
         # set the base configuration
-        self._base_conf = base_conf
-
-        # 
-        # self._base_conf.register
+        self._base_conf = yaml_params
 
         # save the process id
         self._base_conf.Metadata.run_id = process_id
@@ -154,13 +151,15 @@ class SASUMOConf:
         self, process_var: List, process_id: str, random_seed: int
     ) -> ProcessSASUMOConf:
 
-        return ProcessSASUMOConf(
-            deepcopy(OmegaConf.structured(self._s)),
+        # this must be pickleable
+        return dict(
+            yaml_params=deepcopy(OmegaConf.structured(self._s)),
             process_var=process_var,
             process_id=process_id,
-            missing_dotlist=self._missing_dotlist,
+            missing_dotlist=deepcopy(self._missing_dotlist),
             random_seed=random_seed,
         )
+        # )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 # from SASUMO.SASUMO.functions.function import
 import os
+import pickle
 import sys
 import random
 import json5 as json
@@ -145,13 +146,14 @@ class SASUMO:
 
     def main(
         self,
+        smoke_test=False
     ) -> List[List[float]]:
 
         dispatch = []
         results = []
 
         # dispatch = [(i, self._spawn_process(i)) for i in range(self._settings.sensitivity_analysis.num_runs)]
-        for i, _ in enumerate(self._samples):
+        for i, _ in enumerate((range(2), ) * 2 if smoke_test else self._samples):
 
             dispatch.append([i, self._spawn_process(i)])
 
@@ -176,13 +178,13 @@ class SASUMO:
     def _spawn_process(self, index: int) -> ray.ObjectRef:
 
         p = self._f.remote(
-            yaml_settings=self._settings.generate_process(
+             self._settings.generate_process(
                 process_var=self._samples[index], 
                 process_id=str(index),
                 random_seed=self._generate_seed()
-            ),
-            sample_num=index,
-        )
+            )
+            )
+        # )
         return p.run.remote()
 
     def debug_main(
@@ -217,8 +219,11 @@ class SASUMO:
 @click.option(
     "--debug", is_flag=True, help="Run without Ray. For debugging simulations"
 )
+@click.option(
+    "--smoke-test", is_flag=True, help="Run with Ray but for debugging simulations"
+)
 @click.argument("settings_file")
-def run(debug, settings_file):
+def run(debug, smoke_test, settings_file):
 
     s = SASUMO(settings_file)
 
@@ -236,9 +241,11 @@ def run(debug, settings_file):
             ray.init(address="auto")
         except (ConnectionError, RuntimeError):
             print("Starting Ray from python instead")
-            ray.init()
+            # if smoke_test:
+            ray.init(local_mode=smoke_test)
+            
 
-        results = sorted([res for res in s.main() if res], key=lambda x: x[1])
+        results = sorted([res for res in s.main(smoke_test) if res], key=lambda x: x[1])
 
         analysis = sobol.analyze(
             s._problem, np.array([r[0] for r in results]), print_to_console=True
