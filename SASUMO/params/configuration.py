@@ -1,6 +1,7 @@
 from copy import deepcopy
 import os
-from typing import Any, List
+from random import sample
+from typing import Any, Dict, List
 import logging
 
 from datetime import datetime
@@ -9,21 +10,52 @@ from datetime import datetime
 from omegaconf import OmegaConf
 
 
-# elevating this to the module level
 OmegaConf.register_new_resolver(
-    "datetime", lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"), use_cache=True
+    "datetime",
+    lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"),
+    use_cache=True,
 )
 
 OmegaConf.register_new_resolver(
-    "group", lambda x, *,  _root_: SASUMOConf._get_group(x,  _root_, )
+    "group",
+    lambda x, *, _root_: SASUMOConf.get_group(
+        x,
+        _root_,
+    ),
 )
 
+
+class ReplayProcessConf:
+    def __init__(
+        self,
+        yaml_params: object,
+        run_id: str,
+        new_dir: str = "replay",
+        sample_yaml_name: str = "params.yaml",
+    ) -> None:
+
+        # write the run id
+        yaml_params.Metadata.run_id = run_id
+
+        self._base_conf = OmegaConf.merge(
+            yaml_params.to_omega(),
+            OmegaConf.load(os.path.join(yaml_params.Metadata.cwd, sample_yaml_name)),
+        )
+
+    def __getattr__(self, __name: str) -> Any:
+        try:
+            return self._base_conf[__name]
+        except KeyError:
+            return self.__getattribute__(__name)
+
+    def update_simulation_output(self, path: str) -> None:
+        self._base_conf.SimulationCore.output_path = path
 
 
 class ProcessSASUMOConf:
     def __init__(
         self,
-        base_conf: object,
+        yaml_params: object,
         process_var: List,
         process_id: str,
         missing_dotlist: List[str],
@@ -31,16 +63,17 @@ class ProcessSASUMOConf:
     ) -> None:
 
         # set the base configuration
-        self._base_conf = base_conf
-
-        # 
-        # self._base_conf.register
+        self._base_conf = yaml_params
 
         # save the process id
         self._base_conf.Metadata.run_id = process_id
-        self._base_conf.Metadata.random_seed = random_seed
+
+        # only write the random_seed if it has been set
+        if random_seed:
+            self._base_conf.Metadata.random_seed = random_seed
+
         self.update_values(process_var)
-        
+
         # resolve the configuration, to save comp time later. Nothing will change from here on out
         self._missing_dotlist = missing_dotlist
 
@@ -48,6 +81,11 @@ class ProcessSASUMOConf:
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         # self._create_log()
+
+    def to_omega(
+        self,
+    ):
+        return self._base_conf
 
     def __getattr__(self, __name: str) -> Any:
         try:
@@ -73,10 +111,16 @@ class ProcessSASUMOConf:
 
     def update_values(self, process_var: List) -> None:
 
-        for var, process_var in zip(
+        for var, p_var in zip(
             self._base_conf.SensitivityAnalysis.Variables.values(), process_var
         ):
-            var.val = float(process_var)
+            # default is float
+            mode = var.distribution.get("data_type", "float")
+            var.val = eval(f"{mode}(p_var)")
+            if var.distribution.get("data_transform", ""):
+                var.val = eval(
+                    var.distribution.data_transform.replace("val", "var.val")
+                )
 
     def to_yaml(self, file_path: str) -> None:
         new_conf = [
@@ -106,7 +150,7 @@ class SASUMOConf:
             return self.__getattribute__(__name)
 
     @staticmethod
-    def _get_group(group: str, root: object):
+    def get_group(group: str, root: object):
         # This is probably not generalizable enough
         # TODO make this traverse the whole tree
         # TODO: resolve
@@ -115,6 +159,11 @@ class SASUMOConf:
             for _, g in root.SensitivityAnalysis.Variables.items()
             if g.get("group", False) == group
         ]
+
+    def to_omega(
+        self,
+    ):
+        return self._s
 
     def to_yaml(self, file_path: str, resolve: bool = True):
         if resolve:
@@ -155,15 +204,17 @@ class SASUMOConf:
 
     def generate_process(
         self, process_var: List, process_id: str, random_seed: int
-    ) -> ProcessSASUMOConf:
+    ) -> Dict:
 
-        return ProcessSASUMOConf(
-            deepcopy(OmegaConf.structured(self._s)),
+        # this must be pickleable
+        return dict(
+            yaml_params=deepcopy(OmegaConf.structured(self._s)),
             process_var=process_var,
             process_id=process_id,
-            missing_dotlist=self._missing_dotlist,
+            missing_dotlist=deepcopy(self._missing_dotlist),
             random_seed=random_seed,
         )
+        # )
 
 
 if __name__ == "__main__":
