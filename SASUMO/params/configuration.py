@@ -9,6 +9,17 @@ from datetime import datetime
 from omegaconf import OmegaConf
 
 
+# elevating this to the module level
+OmegaConf.register_new_resolver(
+    "datetime", lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"), use_cache=True
+)
+
+OmegaConf.register_new_resolver(
+    "group", lambda x, *,  _root_: SASUMOConf._get_group(x,  _root_, )
+)
+
+
+
 class ProcessSASUMOConf:
     def __init__(
         self,
@@ -82,14 +93,6 @@ class SASUMOConf:
         self,
         file_path: str,
     ) -> None:
-
-        OmegaConf.register_new_resolver(
-            "datetime", lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"), use_cache=True
-        )
-
-        OmegaConf.register_new_resolver(
-            "group", lambda x, *,  _root_: self._get_group(x,  _root_, )
-        )
 
         self._s = OmegaConf.load(file_path)
 

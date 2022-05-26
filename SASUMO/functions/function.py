@@ -187,12 +187,12 @@ class BaseSUMOFunc:
     ) -> None:
         # TODO: internal=False is not always true, maybe a usecase for retry
         mod = beefy_import(
-            self._params.SensitivityAnaylsis.PostProcessing.module, internal=False
+            self._params.SensitivityAnalysis.PostProcessing.module, internal=False
         )
 
         mod(
-            *self._params.SensitivityAnaylsis.PostProcessing.arguments.args,
-            **self._params.SensitivityAnaylsis.PostProcessing.arguments.kwargs,
+            *self._params.SensitivityAnalysis.PostProcessing.arguments.get("args", ()),
+            **self._params.SensitivityAnalysis.PostProcessing.arguments.get("kwargs", {}),
         ).main()
 
     def cleanup(
