@@ -77,8 +77,11 @@ class SASUMO:
             if new_path:
                 sys.path.append(new_path)
 
-    @staticmethod
-    def _generate_seed():
+    
+    def _generate_seed(self, ):
+        # If the random seed is a part of the SA then we don't need them
+        if self._settings.SensitivityAnalysis.Variables.get("RandomSeed", ""):
+            return None
         return random.randint(a=0, b=SEED)
 
     def _generate_samples(

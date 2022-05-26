@@ -1,7 +1,7 @@
 from copy import deepcopy
 import os
 from random import sample
-from typing import Any, List
+from typing import Any, Dict, List
 import logging
 
 from datetime import datetime
@@ -67,7 +67,11 @@ class ProcessSASUMOConf:
 
         # save the process id
         self._base_conf.Metadata.run_id = process_id
-        self._base_conf.Metadata.random_seed = random_seed
+        
+        # only write the random_seed if it has been set
+        if random_seed:
+            self._base_conf.Metadata.random_seed = random_seed
+        
         self.update_values(process_var)
 
         # resolve the configuration, to save comp time later. Nothing will change from here on out
@@ -194,7 +198,7 @@ class SASUMOConf:
 
     def generate_process(
         self, process_var: List, process_id: str, random_seed: int
-    ) -> ProcessSASUMOConf:
+    ) -> Dict:
 
         # this must be pickleable
         return dict(
