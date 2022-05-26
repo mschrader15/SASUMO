@@ -111,10 +111,14 @@ class ProcessSASUMOConf:
 
     def update_values(self, process_var: List) -> None:
 
-        for var, process_var in zip(
+        for var, p_var in zip(
             self._base_conf.SensitivityAnalysis.Variables.values(), process_var
         ):
-            var.val = float(process_var)
+            # default is float
+            mode = var.distribution.get("data_type", "float") 
+            var.val = eval(f"{mode}(p_var)")
+            if var.distribution.get("data_transform", ""):
+                var.val = eval(var.distribution.data_transform.replace("val", "var.val"))
 
     def to_yaml(self, file_path: str) -> None:
         new_conf = [

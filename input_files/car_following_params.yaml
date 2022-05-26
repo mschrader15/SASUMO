@@ -29,6 +29,7 @@ SensitivityAnalysis:
       val: ???
       distribution:
         type: uniform
+        data_type: int
         params:
           min: 10
           max: 10000
@@ -89,6 +90,41 @@ SensitivityAnalysis:
           min: 0.5
           max: 3
 
+    startupDelay:
+      variable_name: startupDelay
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: 0.5
+          min: 0.1
+          max: 4
+
+    jmStoplineGap:
+      variable_name: jmStoplineGap
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: 1.5
+          min: 0
+          max: 5
+    
+    SimStep:
+      # this will be divided by 10 on the simulation side
+      variable_name: sim_step
+      group: ""
+      val: ???
+      distribution: 
+        type: uniform
+        data_type: int
+        data_transform: "val / 10"
+        params:
+          min: 1
+          max: 10
+
   Generators:
     - function: create_veh_distribution
       output_name: veh_distribution_file
@@ -101,7 +137,7 @@ SensitivityAnalysis:
           distribution_size: 100
           distribution_common: 
             car_following_parameter: 
-              distribution_name: car
+              distribution_name: vehDist
               distribution_parameters: |
                 length;uniform(4,6)
                 param; mass; normal(1190,300); [800, 1700]
@@ -147,8 +183,8 @@ SimulationCore:
           simulation_output_path: ${SimulationCore.output_path}
           emissions_file_name: ${SensitivityAnalysis.Output.arguments.kwargs.emissions_xml}
           seed: ${Metadata.random_seed}
+          sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
         
-
 FileManager:
   - None
 
