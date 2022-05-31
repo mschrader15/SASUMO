@@ -9,10 +9,9 @@ Metadata:
   random_seed: ${SensitivityAnalysis.Variables.RandomSeed.val}
 
 SensitivityAnalysis:
-
-  cpu_cores: 1 
+  parallel_trials: 60 
   # N from N * (2D + 2) samples, should be a power of 2
-  N: 128
+  N: 264
   calc_second_order: True
   preprocessing: None
   ManagerFunction: 
@@ -23,6 +22,16 @@ SensitivityAnalysis:
   Variables: 
     # CarFollowingParameters:
     #   PersonalCar:
+    DistWidth:
+      variable_name: distro_width
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          min: 0.01
+          max: 3
+
     RandomSeed:
       variable_name: random_seed
       group: ""
@@ -41,11 +50,10 @@ SensitivityAnalysis:
       distribution:
         type: uniform
         params:
-          width: 0.25
-          min: 0.5
-          max: 3
-
-    
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.1
+          max: 4
+ 
     Accel:
       variable_name: accel
       group: car_following_parameter
@@ -53,8 +61,8 @@ SensitivityAnalysis:
       distribution: 
         type: uniform
         params:
-          width: 0.25
-          min: 3
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.5
           max: 6
     
     Decel:
@@ -64,9 +72,9 @@ SensitivityAnalysis:
       distribution: 
         type: uniform
         params:
-          width: 0.25
-          min: 3
-          max: 7
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.5
+          max: 8
 
     speedFactor:
       variable_name: speedFactor
@@ -75,8 +83,8 @@ SensitivityAnalysis:
       distribution: 
         type: uniform
         params:
-          width: 0.1
-          min: 0.75
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.8
           max: 1.3
    
     minGap:
@@ -86,9 +94,9 @@ SensitivityAnalysis:
       distribution: 
         type: uniform
         params:
-          width: 0.25
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
           min: 0.5
-          max: 3
+          max: 5
 
     startupDelay:
       variable_name: startupDelay
@@ -97,8 +105,8 @@ SensitivityAnalysis:
       distribution: 
         type: uniform
         params:
-          width: 0.5
-          min: 0.1
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0
           max: 4
 
     jmStoplineGap:
@@ -108,7 +116,7 @@ SensitivityAnalysis:
       distribution: 
         type: uniform
         params:
-          width: 1.5
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
           min: 0
           max: 5
     
@@ -119,11 +127,23 @@ SensitivityAnalysis:
       val: ???
       distribution: 
         type: uniform
-        data_type: int
-        data_transform: "val / 10"
+        data_type: math.floor
+        data_transform: "[.1, 1][val]"
         params:
-          min: 1
-          max: 10
+          min: 0
+          max: 2
+    
+    # CFModel:
+    #   variable_name: cfmodel 
+    #   group: ""
+    #   val: ???
+    #   distribution: 
+    #     type: uniform
+    #     data_type: float
+    #     data_transform: "['EIDM', 'IDM'][val > 0]"
+    #     params:
+    #       min: -1
+    #       max: 1
 
   Generators:
     - function: create_veh_distribution
@@ -140,13 +160,11 @@ SensitivityAnalysis:
               distribution_name: vehDist
               distribution_parameters: |
                 length;uniform(4,6)
-                param; mass; normal(1190,300); [800, 1700]
                 vClass;passenger
-                carFollowModel;EIDM
+                carFollowModel;IDM
                 emissionClass;PHEMlight/PC_G_EU4
                 lcKeepRight;uniform(2, 4)
                 jmDriveAfterYellowTime; uniform(0, 2)
-                impatience; normal(0.3, 0.1); [0, 1]
                 lcCooperative; normal(1, 0.1);
 
   Output: 
@@ -156,7 +174,7 @@ SensitivityAnalysis:
         emissions_xml: ${Metadata.cwd}/__temp__emissions.out.xml
         output_time_filter_lower: 3600
         output_time_filter_upper: 10800
-        sim_step: 0.1
+        sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
         save_output: True
 
   PostProcessing:
@@ -169,8 +187,6 @@ SensitivityAnalysis:
         save_path: ${Metadata.cwd}/calibration_results.json
     
 SimulationCore:
-  
-  cpu_cores: 60
   preprocessing: None
   output_path: ${Metadata.cwd}
 

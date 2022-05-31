@@ -4,6 +4,7 @@ from random import sample
 import re
 from typing import Any, Dict, List
 import logging
+import math
 
 from datetime import datetime
 
@@ -117,7 +118,8 @@ class ProcessSASUMOConf:
         ):
             # default is float
             mode = var.distribution.get("data_type", "float")
-            var.val = eval(f"{mode}(p_var)")
+            var.val = eval(f"{mode}({p_var})")
+            
             if var.distribution.get("data_transform", ""):
                 var.val = eval(
                     var.distribution.data_transform.replace("val", "var.val")
