@@ -75,6 +75,7 @@ class BaseSUMOFunc:
                 "kwargs", {}
             ),
             **kwargs,
+            replay=self._replay,
         )
 
     @property

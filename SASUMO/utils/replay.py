@@ -27,18 +27,21 @@ class ReplaySASUMO:
         self._just_sim = just_sim
 
         self._s = ReplayProcessConf(
-            yaml_params=SASUMOConf(os.path.join(replay_root, "sasumo_params.yaml")),
+            yaml_params=SASUMOConf(
+                os.path.join(replay_root, "sasumo_params.yaml"), replace_root=True
+            ),
             run_id=sample_num,
             new_dir=new_folder_location,
         )
 
         # update the path
         self._update_path()
-        
+
         # overwrite the simulation parameter file. This is very specific for my application unfortunately
-        self._s.SimulationCore.SimulationFunction.arguments.kwargs.settings = \
+        self._s.SimulationCore.SimulationFunction.arguments.kwargs.settings = (
             os.path.join(self._s.Metadata.cwd, "simulation_params.json")
-        
+        )
+
         # update the simulation output path
         self._s.update_simulation_output(new_folder_location)
 
@@ -52,7 +55,6 @@ class ReplaySASUMO:
         self._s.Metadata.cwd = self._s.SimulationCore.output_path
 
         self._fn: BaseSUMOFunc = self._get_fn()
-
 
     def _update_path(
         self,
@@ -85,17 +87,12 @@ class ReplaySASUMO:
         )
 
     def _cp_sumo_files(
-        self, 
+        self,
     ) -> None:
-        # this is too specific and too generic at the same time. 
+        # this is too specific and too generic at the same time.
         # TODO: Fix this
-        for f in glob.glob(
-                os.path.join(self._s.Metadata.cwd, "*.xml")
-            ):
-                shutil.copy(
-                    f,
-                    self._s.SimulationCore.output_path
-                )
+        for f in glob.glob(os.path.join(self._s.Metadata.cwd, "*.xml")):
+            shutil.copy(f, self._s.SimulationCore.output_path)
 
     def main(
         self,

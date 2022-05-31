@@ -1,6 +1,7 @@
 from copy import deepcopy
 import os
 from random import sample
+import re
 from typing import Any, Dict, List
 import logging
 
@@ -136,9 +137,14 @@ class SASUMOConf:
     def __init__(
         self,
         file_path: str,
+        replace_root: bool = False
     ) -> None:
 
         self._s = OmegaConf.load(file_path)
+
+        if replace_root:
+            # this replaces the existing root with one relative to the files director
+            self._s.Metadata.output = os.path.split(file_path)[:-1][0] 
 
         # set the missing keys
         self._set_missing_keys()
