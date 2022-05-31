@@ -4,3 +4,4 @@ ray[default]
 numba
 omegaconf
 lxml
+regex

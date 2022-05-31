@@ -115,7 +115,7 @@ class BaseSUMOFunc:
                 center = var.val
                 width = var.distribution.params.width
                 vary_lines.append(
-                    f"{var.variable_name};uniform({center - width / 2},{center + width / 2})"
+                    f"{var.variable_name};uniform({center - width / 2},{center + width / 2});[{var.distribution.params.min},{var.distribution.params.max}]"
                 )
 
             if delta:
@@ -123,7 +123,7 @@ class BaseSUMOFunc:
                 center = var.val
                 width = delta.distribution.params.width
                 vary_lines.append(
-                    f"{delta.variable_name};uniform({center - width / 2},{center + width / 2})"
+                    f"{delta.variable_name};uniform({center - width / 2},{center + width / 2});[{var.distribution.params.min},{var.distribution.params.max}]"
                 )
 
             text_parameters = "\n".join([text_parameters, *vary_lines])
@@ -148,7 +148,7 @@ class BaseSUMOFunc:
                 ]
             )
 
-        os.remove(tmp_dist_input_file)
+        # os.remove(tmp_dist_input_file)
 
         return output_file_name
 
@@ -278,7 +278,6 @@ class RemoteEmissionsSUMOFunc(EmissionsSUMOFunc):
         *args,
         **kwargs,
     ):
-        print("initialized the runner")
         super().__init__(yaml_params, replay, replay_root, *args, **kwargs)
 
     @ray.method(num_returns=1)

@@ -114,7 +114,7 @@ class ReplaySASUMO:
 @click.command()
 @click.option("--results-dir", help="The location to same the replay outputs too")
 @click.option("--sample-num", help="The sample number that you wish to replay")
-@click.option("--just-sim", is_flag=True, help="Run just the simulation")
+@click.option("--just-sim", is_flag=True, help="Run just the simulation. Don't regenerate input files")
 @click.argument("experiment_directory")
 def run(results_dir, sample_num, just_sim, experiment_directory):
     replayer = ReplaySASUMO(experiment_directory, sample_num, results_dir, just_sim)

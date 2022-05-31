@@ -160,7 +160,7 @@ class SASUMO:
 
             dispatch.append([i, self._spawn_process(i)])
 
-            while len(dispatch) >= self._settings.SensitivityAnalysis.cpu_cores or (
+            while len(dispatch) >= self._settings.SensitivityAnalysis.parallel_trials or (
                 i >= (len(self._samples) - 1) and dispatch
             ):
 
