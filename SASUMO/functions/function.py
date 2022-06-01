@@ -1,54 +1,42 @@
 import glob
-import importlib
 import os
 from pathlib import Path
 import subprocess
-import sys
-from typing import List
-import uuid
-from abc import ABCMeta
-from copy import deepcopy
-from datetime import datetime
+from typing import Any, List, Union
+
 
 import numpy as np
 import ray
 
 # internal imports
-from SASUMO.params import ProcessParameters, Settings4SASUMO
-from SASUMO.params import SensitivityAnalysisGroup
+from SASUMO.params import ProcessSASUMOConf
 from SASUMO.utils import FleetComposition, beefy_import
-from SASUMO.functions.output import TotalEmissionsHandler
-
-# from sumolib.vehicle.vehtype_distribution import CreateVehTypeDistribution
-
-
-# import subprocess
-# from sumolib.vehicle import CreateMultiVehTypeDistributions
+from SASUMO.params.configuration import ReplayProcessConf
+from SASUMO.utils.utils import create_folder
 
 TEMP_PATTERN = "__temp__"
+SUMO_HOME = os.environ.get("SUMO_HOME")
 
 
 class BaseSUMOFunc:
+    def __init__(
+        self,
+        yaml_params: Union[dict, ReplayProcessConf],
+        replay: bool = False,
+        replay_root: str = None,
+        *args,
+        **kwargs,
+    ):
 
-    def __init__(self,
-                 yaml_params: Settings4SASUMO,
-                 sample: np.array,
-                 sample_num: int,
-                 seed: int = None,
-                 replay: bool = False,
-                 replay_root: str = None,
-                 *args,
-                 **kwargs):
-
-        self._params = ProcessParameters(
-            yaml_settings=yaml_params, sample=sample, seed=seed, sample_num=sample_num, replay_root=replay_root
-        )
+        # create the yaml params
+        if isinstance(yaml_params, ReplayProcessConf):
+            self._params = yaml_params
+        else:
+            self._params = ProcessSASUMOConf(**yaml_params)
 
         # log if replay mode or not
         self._replay = replay
-        
-        # self._folder =
-        # self._params.save()
+
         self._dump_parameters()
 
         self._output_handler = self._create_output_handler()
@@ -56,177 +44,197 @@ class BaseSUMOFunc:
         # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
-
-    def _dump_parameters(self, ):
+    def _dump_parameters(
+        self,
+    ):
         if not self._replay:
-            self._params.save_sa_values(
-                os.path.join(self._params.WORKING_FOLDER, 'sa_values.json')
-            )
+            # create the directory
+            create_folder(self._params.Metadata.cwd)
+            # save the file
+            self._params.to_yaml(os.path.join(self._params.Metadata.cwd, "params.yaml"))
+            # create a logger
+            self._params.create_logger()
 
-    def _replace_variable(self, d: dict) -> dict:
-        return {key: self._params.handle_path(item) for key, item in d.items()}
-
-    def _create_output_handler(self, ):
-        mod = beefy_import(self._params._sensitivity_analysis.output.module)
-        return mod(cwd=self._params.WORKING_FOLDER, **self._params._sensitivity_analysis.output.arguments.kwargs)
+    def _create_output_handler(
+        self,
+    ):
+        mod = beefy_import(self._params.SensitivityAnalysis.Output.module)
+        return mod(
+            cwd=self._params.Metadata.cwd,
+            **self._params.SensitivityAnalysis.Output.arguments.kwargs,
+        )
 
     def _create_simulation(self, **kwargs):
-        mod = beefy_import(self._params.simulation_core.simulation_function.module, internal=False)
-        
-        _kwargs = self._replace_variable(self._params.simulation_core.simulation_function.arguments.kwargs)
-
-        # TODO: Fix this. Seems hacky
-        _kwargs['random_seed'] = self._params.SEED
+        mod = beefy_import(
+            self._params.SimulationCore.SimulationFunction.module, internal=False
+        )
 
         return mod(
-            *self._params.simulation_core.simulation_function.arguments.args or [], 
-            **_kwargs,
-            **kwargs
+            *self._params.SimulationCore.SimulationFunction.arguments.get("args", []),
+            **self._params.SimulationCore.SimulationFunction.arguments.get(
+                "kwargs", {}
+            ),
+            **kwargs,
         )
 
     @property
-    def output(self, ) -> float:
+    def output(
+        self,
+    ) -> float:
         return self._output()
 
-    def _output(self, ) -> float:
+    def _output(
+        self,
+    ) -> float:
         pass
 
-    # def create_veh_defintion(self, ) -> None:
-    #     """Call SUMO's https://github.com/eclipse/sumo/blob/master/tools/createVehTypeDistribution.py here"""
-    #     # self._params.veh_dist_location = os.path.join(self._folder, self._params.VEH_DIST_NAME + ".in.xml")
-
-    #     creator = CreateMultiVehTypeDistributions()
-
-    #     for param in self._params.CAR_FOLLOWING_PARAMETERS.PARAMETERS:
-
-    #         creator.register_veh_type_distribution(veh_type_dist=CreateVehTypeDistribution(**param), )
-
-    #     creator.to_xml(file_path=self._params.VEH_DIST_SAVE_PATH)
-
-    #     creator.save_myself(file_path=self._params.VEH_DIST_SAVE_PATH)
-
-    def create_veh_distribution(self, *args: List[SensitivityAnalysisGroup], output_file_name, distribution_size, delta: SensitivityAnalysisGroup = None) -> None:
+    def create_veh_distribution(
+        self,
+        *args: List[object],
+        output_file_name,
+        distribution_size,
+        distribution_common,
+        delta=None,
+    ) -> None:
         """
         Creating the text input file
         """
         tmp_dist_input_file = os.path.join(
-            self._params.WORKING_FOLDER,  TEMP_PATTERN + "vehDist.txt"
+            self._params.Metadata.cwd, f"{TEMP_PATTERN}vehDist.txt"
         )
 
-        veh_dist_file = os.path.join(
-            self._params.WORKING_FOLDER,  TEMP_PATTERN + output_file_name
-        )
+        for type_group in args:
 
-        # veh_dist_file = self._params.set_var_inline(
-        #     self._params.create_working_path(self._params.VEH_DIST_FILE)
-        # )
+            group_name = type_group[0].group
 
-        for group in args:
-
-            text_parameters = group.generator_arguments.common_parameters
+            text_parameters = distribution_common[group_name].distribution_parameters
 
             # compose the variables
             vary_lines = []
-            for var in group.variables:
-                center = var.distribution.params.sa_value
+            for var in type_group:
+                center = var.val
                 width = var.distribution.params.width
                 vary_lines.append(
-                    f'{var.variable_name};uniform({center - width / 2},{center + width / 2})'
+                    f"{var.variable_name};uniform({center - width / 2},{center + width / 2});[{var.distribution.params.min},{var.distribution.params.max}]"
                 )
-
 
             if delta:
                 # add in the delta (if delta)
-                center = delta.distribution.params.sa_value
+                center = var.val
                 width = delta.distribution.params.width
                 vary_lines.append(
-                    f'{delta.variable_name};uniform({center - width / 2},{center + width / 2})'
+                    f"{delta.variable_name};uniform({center - width / 2},{center + width / 2});[{var.distribution.params.min},{var.distribution.params.max}]"
                 )
-
-
 
             text_parameters = "\n".join([text_parameters, *vary_lines])
 
-            with open(tmp_dist_input_file, 'w') as f:
+            with open(tmp_dist_input_file, "w") as f:
                 """
                 Create a list of rows to write to the text file
                 """
                 f.write(text_parameters)
 
-            subprocess.run([f"{self._params.SUMO_HOME}/tools/createVehTypeDistribution.py",
-                            tmp_dist_input_file,
-                            '--name', group.name,
-                            '-o', veh_dist_file,
-                            '--size', str(distribution_size)])
+            subprocess.run(
+                [
+                    "python",
+                    f"{SUMO_HOME}/tools/createVehTypeDistribution.py",
+                    tmp_dist_input_file,
+                    "--name",
+                    distribution_common[group_name].distribution_name,
+                    "-o",
+                    output_file_name,
+                    "--size",
+                    str(distribution_size),
+                ]
+            )
 
-        os.remove(tmp_dist_input_file)
+        # os.remove(tmp_dist_input_file)
 
-        return veh_dist_file
+        return output_file_name
 
-    def fleet_composition(self, base_route_file, fleet_composition, controlled_dist_name, other_dist_name):
+    def fleet_composition(
+        self, base_route_file, fleet_composition, controlled_dist_name, other_dist_name
+    ):
         """
-        This function
+        This function creates a route distribution based on some fleet composition
+
         """
 
-        output_file_path = os.path.join(self._params.WORKING_FOLDER,
-                                        TEMP_PATTERN + Path(base_route_file).name)
+        output_file_path = os.path.join(
+            self._params.Metadata.cwd, TEMP_PATTERN + Path(base_route_file).name
+        )
 
         fleet = {
             controlled_dist_name: fleet_composition.distribution.sa_value,
-            other_dist_name: 1 - fleet_composition.distribution.sa_value
+            other_dist_name: 1 - fleet_composition.distribution.sa_value,
         }
 
-        f = FleetComposition(fleet,
-                             seed=self._params.SEED,
-                             route_file=self._params.handle_path(base_route_file))
-
-        f.replace_vehType(
-            output_path=output_file_path
+        f = FleetComposition(
+            fleet, seed=self._params.Metadata.random_seed, route_file=base_route_file
         )
+
+        f.replace_vehType(output_path=output_file_path)
 
         return output_file_path
 
-    def post_processing(self, ) -> None:
-        # TODO: internal=False is not always true
-        mod = beefy_import(self._params.sensitivity_analysis.post_processing.module, internal=False)
+    def post_processing(
+        self,
+    ) -> None:
+        # TODO: internal=False is not always true, maybe a usecase for retry
+        mod = beefy_import(
+            self._params.SensitivityAnalysis.PostProcessing.module, internal=False
+        )
 
         mod(
-             *self._params.sensitivity_analysis.post_processing.arguments.args,
-             **self._replace_variable(self._params.sensitivity_analysis.post_processing.arguments.kwargs)
-         ).main()
+            *self._params.SensitivityAnalysis.PostProcessing.arguments.get("args", ()),
+            **self._params.SensitivityAnalysis.PostProcessing.arguments.get(
+                "kwargs", {}
+            ),
+        ).main()
 
-
-    def cleanup(self, ) -> None:
+    def cleanup(
+        self,
+    ) -> None:
         # delete files, but only if not replay mode
         if not self._replay:
-            for f in glob.glob(os.path.join(self._params.WORKING_FOLDER, TEMP_PATTERN.join(['*'] * 2))):
+            for f in glob.glob(
+                os.path.join(self._params.Metadata.cwd, TEMP_PATTERN.join(["*"] * 2))
+            ):
                 os.remove(f)
+
+    def run_simulation(self, *args, **kwargs) -> Any:
+        return self._create_simulation(*args, **kwargs).main()
 
 
 class EmissionsSUMOFunc(BaseSUMOFunc):
-
-    def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
-
-        super().__init__(yaml_params=yaml_settings, sample=sample, seed=seed, *args, **kwargs)
-
-        # self._output_handler = TotalEmissionsHandler(self._params)
-        # self._simulation = beefy_import(self._params.simulation)
-        # self._simulation = importlib.import_module(self._params.)
+    def __init__(
+        self,
+        yaml_params: dict,
+        replay: bool = False,
+        replay_root: str = None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(yaml_params, replay, replay_root, *args, **kwargs)
 
     @property
     def output(self):
         return self._output_handler.y
 
-    def _handle_matlab(self, ):
+    def _handle_matlab(
+        self,
+    ):
         """
-        This function should handle matlab. 
-        This means that it should connect to a running matlab instance and pass said connection to the main function running the simulation 
+        This function should handle matlab.
+        This means that it should connect to a running matlab instance and pass said connection to the main function running the simulation
         """
         pass
 
-    def execute_generator_functions(self, ):
+    def execute_generator_functions(
+        self,
+    ):
         output_dict = {}
-        for gen in self._params.sensitivity_analysis.generators:
+        for gen in self._params.SensitivityAnalysis.Generators:
             self._params.log_info(f"Running {gen.function}")
             f = getattr(self, gen.function)
             out = f(*gen.arguments.args or [], **gen.arguments.kwargs)
@@ -234,13 +242,14 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
                 output_dict[gen.output_name] = out
         return output_dict
 
-    # @ray.method(num_returns=1)
-    def run(self, ):
+    def run(
+        self,
+    ):
         """
-        This is the main function. It: 
+        This is the main function. It:
             1. creates a folder location from where to work from
             2. generates the input files for the varying parameters
-            3. runs the specific runner. It should have a "main" method. 
+            3. runs the specific runner. It should have a "main" method.
                I can create an abstract base class later
         """
         simulation_kwargs = self.execute_generator_functions()
@@ -251,22 +260,28 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         self._simulation.main()
 
         self.post_processing()
-        
+
         y = self.output
 
         self.cleanup()
 
         return y
-    
 
 
 @ray.remote
 class RemoteEmissionsSUMOFunc(EmissionsSUMOFunc):
-
-    def __init__(self, yaml_settings, sample, seed, *args, **kwargs):
-
-        super().__init__(yaml_settings, sample, seed, *args, **kwargs)
+    def __init__(
+        self,
+        yaml_params: dict,
+        replay: bool = False,
+        replay_root: str = None,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(yaml_params, replay, replay_root, *args, **kwargs)
 
     @ray.method(num_returns=1)
-    def run(self, ):
+    def run(
+        self,
+    ):
         return super().run()

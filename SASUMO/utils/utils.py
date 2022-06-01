@@ -1,24 +1,18 @@
 from importlib import import_module
 import os
 import csv
+from tempfile import TemporaryFile
 from lxml import etree
 from xml.dom import minidom
 import re
 import mmap
 
 
-def path_constructor(path: str, cwd: str = None) -> str:
-    ''' Extract the matched value, expand env variable, and replace the match '''
-    path_matcher = re.compile(r'\$\{([^}^{]+)\}')
-    match = path_matcher.match(path)
-    if match:
-        env_var = match.group()[2:-1]
-        if env_var == 'cwd':
-            return cwd + path[match.end():]
-        try:
-            return os.environ.get(env_var) + path[match.end():]
-        except TypeError:
-            raise Exception(env_var)
+def create_folder(path, safe: bool = True) -> str:
+    os.makedirs(
+        path,
+        exist_ok=not safe
+    )
     return path
 
 
@@ -43,8 +37,6 @@ class Parser:
         # self._fields_simp = xml_fields
         self._parse_function = {
             'emissions': self._parse_and_write_emissions,
-            #   'e1': parse_and_write_detector,
-            #   'e2': parse_and_write_detector
         }[file_type]
 
     @staticmethod
@@ -109,7 +101,7 @@ class FleetComposition:
             for node in t.getElementsByTagName(route_type):
                 self._replace_veh_type(node, )
 
-        with open(self._r if not output_path else output_path, 'w') as f:
+        with open(output_path or self._r, 'w') as f:
             f.write(t.toxml())
 
     def _replace_veh_type(self, element: minidom.Element) -> None:
@@ -124,8 +116,12 @@ def regex_fc_total(file_path, time_low: float = None, time_high: float = None):
         data = mmap.mmap(f.fileno(), 0)
         time_low_i = re.search("time=\"{}\"".format("{:.2f}".format(
             time_low)).encode(), data).span()[-1] if time_low else 0
-        time_high_i = re.search("time=\"{}\"".format("{:.2f}".format(
-            time_high)).encode(), data).span()[0] if time_high else -1
+        try:
+            time_high_i = re.search("time=\"{}\"".format("{:.2f}".format(
+                time_high)).encode(), data).span()[0] if time_high else -1
+        except AttributeError:
+            # this means that the time high does not exist in the file so we count all the way to the end
+            time_high_i = -1
 
         for match in re.finditer(pattern, data[time_low_i:time_high_i]):
             fc = float(match.group(1).decode().split('=')[-1][1:-1])

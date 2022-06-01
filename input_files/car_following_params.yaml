@@ -1,147 +1,206 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: Car_Following_Params_V3_630AM
+  name: Car_Following_Params_Test
   author: mcschrader@crimson.ua.edu
+  output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
+  run_id: ???
+  cwd: ${.output}/${.run_id}
+  simulation_root: ${oc.env:AIRPORT_HARPER_SUMO}
+  random_seed: ${SensitivityAnalysis.Variables.RandomSeed.val}
 
 SensitivityAnalysis:
-
-  working_root: ${SENSITIVITY_ANALYSIS_OUTPUT} 
+  parallel_trials: 60 
   # N from N * (2D + 2) samples, should be a power of 2
-  N: 128
+  N: 264
   calc_second_order: True
-  variables: &sa_variables
-      
-    CarFollowingParameters:
+  preprocessing: None
+  ManagerFunction: 
+    module: functions.RemoteEmissionsSUMOFunc
+    # sensitivity analysis sample is inherently the first argument 
+    arguments:
+  
+  Variables: 
+    # CarFollowingParameters:
+    #   PersonalCar:
+    DistWidth:
+      variable_name: distro_width
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          min: 0.01
+          max: 3
 
-      PersonalCar:
+    RandomSeed:
+      variable_name: random_seed
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        data_type: int
+        params:
+          min: 10
+          max: 10000
 
-        Tau:
-          variable_name: tau
-          type: car_following_parameter
-          distribution:
-            type: uniform
-            params:
-              width: 0.25
-              min: 0.5
-              max: 3 
-        
-        Delta:
-          variable_name: delta
-          type: car_following_parameter
-          distribution:
-            type: uniform
-            params:
-              width: 0.25
-              min: 1
-              max: 10
-        
-        Accel:
-          variable_name: accel
-          type: car_following_parameter
-          distribution: 
-            type: uniform
-            params:
-              width: 0.25
-              min: 3
-              max: 6
-        
-        Decel:
-          variable_name: decel
-          type: car_following_parameter
-          distribution: 
-            type: uniform
-            params:
-              width: 0.25
-              min: 3
-              max: 7
+    Tau:
+      variable_name: tau
+      group: car_following_parameter
+      val: ??? 
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.1
+          max: 4
+ 
+    Accel:
+      variable_name: accel
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.5
+          max: 6
+    
+    Decel:
+      variable_name: decel
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.5
+          max: 8
 
-        speedFactor:
-          variable_name: speedFactor
-          type: car_following_parameter
-          distribution: 
-            type: uniform
-            params:
-              width: 0.1
-              min: 0.75
-              max: 1.5
+    speedFactor:
+      variable_name: speedFactor
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.8
+          max: 1.3
    
-        minGap:
-          variable_name: minGap
-          type: car_following_parameter
-          distribution: 
-            type: uniform
-            params:
-              width: 0.25
-              min: 0.5
-              max: 3
-  
-        generator_arguments: &PersonalCarArguments         
-          common_parameters: |
-            length;uniform(4,6)
-            param; mass; normal(1190,300); [800, 1700]
-            vClass;passenger
-            carFollowModel;IDM
-            emissionClass;PHEMlight/PC_G_EU4
-            lcKeepRight;uniform(2, 4)
-            actionStepLength;uniform(0.8, 1.1)
-            jmDriveAfterYellowTime; uniform(0, 2)
-            impatience; normal(0.3, 0.1); [0, 1]
-            lcAssertive; normal(4, 1); [2, 6]
-            lcCooperative; normal(1, 0.1);
+    minGap:
+      variable_name: minGap
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0.5
+          max: 5
 
+    startupDelay:
+      variable_name: startupDelay
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0
+          max: 4
 
-      generator:
-        function: create_veh_distribution
-        arguments:
-          args:
-            - PersonalCar
-          kwargs:
-            output_file_name: vehDist.in.xml
-            distribution_size: 100
+    jmStoplineGap:
+      variable_name: jmStoplineGap
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          min: 0
+          max: 5
+    
+    SimStep:
+      # this will be divided by 10 on the simulation side
+      variable_name: sim_step
+      group: ""
+      val: ???
+      distribution: 
+        type: uniform
+        data_type: math.floor
+        data_transform: "[.1, 1][val]"
+        params:
+          min: 0
+          max: 2
+    
+    # CFModel:
+    #   variable_name: cfmodel 
+    #   group: ""
+    #   val: ???
+    #   distribution: 
+    #     type: uniform
+    #     data_type: float
+    #     data_transform: "['EIDM', 'IDM'][val > 0]"
+    #     params:
+    #       min: -1
+    #       max: 1
 
+  Generators:
+    - function: create_veh_distribution
+      output_name: veh_distribution_file
+      passed_to_simulation: True
+      arguments:
+        args:
+          - ${group:car_following_parameter}
+        kwargs:
+          output_file_name: ${Metadata.cwd}/vehDist.in.xml
+          distribution_size: 100
+          distribution_common: 
+            car_following_parameter: 
+              distribution_name: vehDist
+              distribution_parameters: |
+                length;uniform(4,6)
+                vClass;passenger
+                carFollowModel;IDM
+                emissionClass;PHEMlight/PC_G_EU4
+                lcKeepRight;uniform(2, 4)
+                jmDriveAfterYellowTime; uniform(0, 2)
+                lcCooperative; normal(1, 0.1);
 
-        output_name: veh_distribution_file
-        passed_to_simulation: True
-
-  
   Output: 
     module: functions.output.TotalEmissionsHandler
     arguments:
       kwargs:
-        emissions_xml: ${cwd}/__temp__emissions.out.xml
+        emissions_xml: ${Metadata.cwd}/__temp__emissions.out.xml
         output_time_filter_lower: 3600
-        output_time_filter_upper: 7200
-        sim_step: 0.1
+        output_time_filter_upper: 10800
+        sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
         save_output: True
 
-  Post_Processing:
+  PostProcessing:
     module: tools.output_tools.USDOTCalibration
-    path: ${SIMULATION_ROOT}
+    path: ${Metadata.simulation_root}
     arguments:
       kwargs:
-        settings: ${cwd}/simulation_params.json
-        historical_data: ${SIMULATION_ROOT}/data-analysis/feb_2020/detector_average_table_600S.pkl
-        save_path: ${cwd}/calibration_results.json
+        settings: ${Metadata.cwd}/simulation_params.json
+        historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+        save_path: ${Metadata.cwd}/calibration_results.json
     
 SimulationCore:
-  
-  cpu_cores: 60
   preprocessing: None
-  # This should point to a function in the
-  manager_function: 
-    module: functions.RemoteEmissionsSUMOFunc
-    # sensitivity analysis sample is inherently the first argument 
-    arguments: 
+  output_path: ${Metadata.cwd}
 
-  simulation_function:  
-      module: runners.NoTraciSimulationMonteCarlo
-      path: ${SIMULATION_ROOT}
+  SimulationFunction:  
+      module: runners.sasumo.NoTraciSimulationSASUMO
+      path: ${Metadata.simulation_root}
       arguments: # Not including the generator arguments marked for being passed to simulation
         kwargs:
-          settings: /home/max/tmp/airport_harper_sumo_sasumo/Car_Following_Params_V3_630AM/params.json
-          simulation_output_path: ${cwd}
-          emissions_file_name: __temp__emissions.out.xml
-
+          settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
+          simulation_output_path: ${SimulationCore.output_path}
+          emissions_file_name: ${SensitivityAnalysis.Output.arguments.kwargs.emissions_xml}
+          seed: ${Metadata.random_seed}
+          sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
+        
 FileManager:
   - None
 

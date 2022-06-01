@@ -2,3 +2,6 @@ SALib
 modin
 ray[default]
 numba
+omegaconf
+lxml
+regex
