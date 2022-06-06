@@ -13,6 +13,7 @@ from SASUMO.params import ProcessSASUMOConf
 from SASUMO.utils import FleetComposition, beefy_import
 from SASUMO.params.configuration import ReplayProcessConf
 from SASUMO.utils.utils import create_folder
+from SASUMO.utils.sumo_dist_builder import create_distribution
 
 TEMP_PATTERN = "__temp__"
 SUMO_HOME = os.environ.get("SUMO_HOME")
@@ -113,18 +114,10 @@ class BaseSUMOFunc:
             # compose the variables
             vary_lines = []
             for var in type_group:
-                center = var.val
-                width = var.distribution.params.width
+                dist_func = create_distribution(var.distribution.type)
+                sumo_dist_string = dist_func(val=var.val, **dict(var.distribution.params))
                 vary_lines.append(
-                    f"{var.variable_name};uniform({center - width / 2},{center + width / 2});[{var.distribution.params.min},{var.distribution.params.max}]"
-                )
-
-            if delta:
-                # add in the delta (if delta)
-                center = var.val
-                width = delta.distribution.params.width
-                vary_lines.append(
-                    f"{delta.variable_name};uniform({center - width / 2},{center + width / 2});[{var.distribution.params.min},{var.distribution.params.max}]"
+                    f"{var.variable_name};{sumo_dist_string}"
                 )
 
             text_parameters = "\n".join([text_parameters, *vary_lines])
@@ -146,10 +139,10 @@ class BaseSUMOFunc:
                     output_file_name,
                     "--size",
                     str(distribution_size),
+                    "--seed",
+                    str(self._params.Metadata.random_seed)
                 ]
             )
-
-        # os.remove(tmp_dist_input_file)
 
         return output_file_name
 
@@ -159,6 +152,7 @@ class BaseSUMOFunc:
         """
         This function creates a route distribution based on some fleet composition
 
+        #TODO: This needs to be reworked entirely.
         """
 
         output_file_path = os.path.join(
