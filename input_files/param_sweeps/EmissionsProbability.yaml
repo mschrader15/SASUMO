@@ -1,0 +1,76 @@
+Metadata:
+  # The name will also show up as the main folder for simulation 
+  name: EmissionDeviceSweep
+  author: mcschrader@crimson.ua.edu
+  output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
+  run_id: ???
+  cwd: ${.output}/${.run_id}
+  simulation_root: ${oc.env:AIRPORT_HARPER_SUMO}
+  random_seed: ???
+  mode: ParameterSweep
+
+ParameterSweep:
+  parallel_trials: 60 
+  # N is the number of runs at each point in the sweep (for randomness)
+  "N": 10
+  preprocessing: None
+  ManagerFunction: 
+    module: functions.RemoteEmissionsSUMOFunc
+    arguments:
+  
+  Variables: 
+
+    EmissionDeviceProbability:
+      variable_name: emission_probability
+      group: ""
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          start: .05
+          stop: 1
+          num: 95
+      
+  Output: 
+    module: functions.output.TotalEmissionsHandler
+    arguments:
+      kwargs:
+        emissions_xml: ${Metadata.cwd}/__temp__emissions.out.xml
+        output_time_filter_lower: 1800
+        output_time_filter_upper: 10800
+        sim_step: 0.1
+        save_output: True
+        emission_device_probability: ${ParameterSweep.Variables.EmissionDeviceProbability.val}
+
+  PostProcessing:
+    module: tools.output_tools.USDOTCalibration
+    path: ${Metadata.simulation_root}
+    arguments:
+      kwargs:
+        settings: ${Metadata.cwd}/simulation_params.json
+        historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+        save_path: ${Metadata.cwd}/calibration_results.json
+    
+SimulationCore:
+  preprocessing: None
+  output_path: ${Metadata.cwd}
+
+  SimulationFunction:  
+      module: runners.sasumo.NoTraciSimulationSASUMO
+      path: ${Metadata.simulation_root}
+      arguments: # Not including the generator arguments marked for being passed to simulation
+        kwargs:
+          settings: ${Metadata.simulation_root}/sim-settings/sasumo/paramater_sweep/baseline.json
+          simulation_output_path: ${SimulationCore.output_path}
+          emissions_file_name: ${ParameterSweep.Output.arguments.kwargs.emissions_xml}
+          seed: ${Metadata.random_seed}
+          sim_step: 0.1
+          emission_device_probability: ${ParameterSweep.Variables.EmissionDeviceProbability.val}
+        
+FileManager:
+  - None
+
+
+
+
+

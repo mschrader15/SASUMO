@@ -9,7 +9,7 @@ import numpy as np
 import ray
 
 # internal imports
-from SASUMO.params import ProcessSASUMOConf
+from SASUMO.params import ProcessConfig
 from SASUMO.utils import FleetComposition, beefy_import
 from SASUMO.params.configuration import ReplayProcessConf
 from SASUMO.utils.utils import create_folder
@@ -33,7 +33,7 @@ class BaseSUMOFunc:
         if isinstance(yaml_params, ReplayProcessConf):
             self._params = yaml_params
         else:
-            self._params = ProcessSASUMOConf(**yaml_params)
+            self._params = ProcessConfig(**yaml_params)
 
         # log if replay mode or not
         self._replay = replay
@@ -59,10 +59,10 @@ class BaseSUMOFunc:
     def _create_output_handler(
         self,
     ):
-        mod = beefy_import(self._params.SensitivityAnalysis.Output.module)
+        mod = beefy_import(self._params.get("Output", {}).get("module"))
         return mod(
             cwd=self._params.Metadata.cwd,
-            **self._params.SensitivityAnalysis.Output.arguments.kwargs,
+            **self._params.get("Output", {}).arguments.kwargs,
         )
 
     def _create_simulation(self, **kwargs):
@@ -176,12 +176,12 @@ class BaseSUMOFunc:
     ) -> None:
         # TODO: internal=False is not always true, maybe a usecase for retry
         mod = beefy_import(
-            self._params.SensitivityAnalysis.PostProcessing.module, internal=False
+            self._params.get("PostProcessing").module, internal=False
         )
 
         mod(
-            *self._params.SensitivityAnalysis.PostProcessing.arguments.get("args", ()),
-            **self._params.SensitivityAnalysis.PostProcessing.arguments.get(
+            *self._params.get("PostProcessing").arguments.get("args", ()),
+            **self._params.get("PostProcessing").arguments.get(
                 "kwargs", {}
             ),
         ).main()
@@ -228,7 +228,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         self,
     ):
         output_dict = {}
-        for gen in self._params.SensitivityAnalysis.Generators:
+        for gen in self._params.get("Generators", []):
             self._params.log_info(f"Running {gen.function}")
             f = getattr(self, gen.function)
             out = f(*gen.arguments.args or [], **gen.arguments.kwargs)
