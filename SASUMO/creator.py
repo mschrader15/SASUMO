@@ -130,8 +130,8 @@ class SASUMO:
             Tuple[float, float]:
         """
         return (
-            variable_obj.distribution.params.get("min", 0),
-            variable_obj.distribution.params.max,
+            variable_obj.distribution.params.get("lb", 0),
+            variable_obj.distribution.params.ub,
         )
 
     def _save_problem(
@@ -218,6 +218,7 @@ class SASUMO:
         )
 
 
+
 @click.command()
 @click.option(
     "--debug", is_flag=True, help="Run without Ray. For debugging simulations"
@@ -225,8 +226,11 @@ class SASUMO:
 @click.option(
     "--smoke-test", is_flag=True, help="Run with Ray but for debugging simulations"
 )
+@click.option(
+    "--finish-existing", is_flag=True, help="Finish a sensitivity analysis that quit for some reason. It will replay the last # - CPU * 2, just to be safe"
+)
 @click.argument("settings_file")
-def run(debug, smoke_test, settings_file):
+def run(debug, smoke_test, finish_existing, settings_file):
 
     s = SASUMO(settings_file)
 

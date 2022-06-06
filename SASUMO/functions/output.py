@@ -29,6 +29,7 @@ class TotalEmissionsHandler(_OutputHandler):
         output_time_filter_upper: float,
         sim_step: float,
         save_output: bool = False,
+        emission_device_probability: float = 1.
     ) -> None:
 
         super().__init__(cwd)
@@ -38,6 +39,7 @@ class TotalEmissionsHandler(_OutputHandler):
         self._time_filter_upper = output_time_filter_upper
         self._sim_step = sim_step
         self._save_output = save_output
+        self._emission_device_prob = emission_device_probability
 
     def _y(
         self,
@@ -48,6 +50,8 @@ class TotalEmissionsHandler(_OutputHandler):
             )
             * self._sim_step
         )
+        # divide the output number by the float probability of a vehicle having an emissions device.
+        output /= self._emission_device_prob
         if self._save_output:
             self.save_output(output)
         return output
