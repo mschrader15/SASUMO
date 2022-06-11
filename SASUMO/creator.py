@@ -249,11 +249,11 @@ def run(debug, smoke_test, finish_existing, settings_file):
     s = SASUMO(settings_file)
 
     if debug:
-        if "Remote" in s.get("ManagerFunction").module:
-            s.get("ManagerFunction").module = s.get("ManagerFunction").module.replace(
+        if "Remote" in s._settings.get("ManagerFunction").module:
+            s._settings.get("ManagerFunction").module = s._settings.get("ManagerFunction").module.replace(
                 "Remote", ""
             )
-            s.main_fn_helper(s.get("ManagerFunction").module)
+            s.main_fn_helper(s._settings.get("ManagerFunction").module)
         s.debug_main()
     else:
         try:

@@ -133,50 +133,37 @@ SensitivityAnalysis:
         params:
           lb: 0
           ub: 4
-    
-    # CFModel:
-    #   variable_name: cfmodel 
-    #   group: ""
-    #   val: ???
-    #   distribution: 
-    #     type: uniform
-    #     data_type: float
-    #     data_transform: "['EIDM', 'IDM'][val > 0]"
-    #     params:
-    #       lb: -1
-    #       ub: 1
 
   Generators:
     - function: create_veh_distribution
       output_name: veh_distribution_file
-      passed_to_simulation: True
       arguments:
         args:
-          - ${group:car_following_parameter}
+          - variable_parameters: ${group:car_following_parameter}
+            fleet_composition: 1
+            vehicle_name: car  
+            distribution_parameters: |
+              length;uniform(4,6)
+              vClass;passenger
+              carFollowModel;IDM
+              emissionClass;PHEMlight/PC_G_EU4
+              lcKeepRight;uniform(2, 4)
+              jmDriveAfterYellowTime; uniform(0, 2)
+              lcCooperative; normal(1, 0.1);
+              decel; lognormal(2.225, 1.849); [0.1, 8]
+              actionStepLength; 0.2
+              jmTimegapMinor;4.5
+              impatience;uniform(0, 0.1)
         kwargs:
-          output_file_name: ${Metadata.cwd}/__temp__vehDist.in.xml
+          output_file_name: ${FileManager.veh_distribution_file}
           distribution_size: 1000
-          distribution_common: 
-            car_following_parameter:
-              distribution_name: vehDist
-              distribution_parameters: |
-                length;uniform(4,6)
-                vClass;passenger
-                carFollowModel;IDM
-                emissionClass;PHEMlight/PC_G_EU4
-                lcKeepRight;uniform(2, 4)
-                jmDriveAfterYellowTime; uniform(0, 2)
-                lcCooperative; normal(1, 0.1);
-                decel; lognormal(2.225, 1.849); [0.1, 8]
-                actionStepLength; 0.2
-                jmTimegapMinor;4.5
-                impatience;uniform(0, 0.1)
+          distribution_name: vehDist
 
   Output: 
     module: functions.output.TotalEmissionsHandler
     arguments:
       kwargs:
-        emissions_xml: ${Metadata.cwd}/__temp__emissions.out.xml
+        emissions_xml: ${FileManager.emissions_file}
         output_time_filter_lower: 1800
         output_time_filter_upper: 10800
         sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
@@ -203,14 +190,15 @@ SimulationCore:
         kwargs:
           settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
           simulation_output_path: ${SimulationCore.output_path}
-          emissions_file_name: ${SensitivityAnalysis.Output.arguments.kwargs.emissions_xml}
+          emissions_file_name: ${FileManager.emissions_file}
           seed: ${Metadata.random_seed}
           sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
           emission_device_probability: ${SensitivityAnalysis.Variables.EmissionDeviceProbability.val}
+          veh_distribution_file: ${FileManager.veh_distribution_file}
         
 FileManager:
-  - None
-
+  veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
+  emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
 
 
 

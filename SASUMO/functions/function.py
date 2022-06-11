@@ -2,21 +2,22 @@ import glob
 import os
 from pathlib import Path
 import subprocess
-from typing import Any, List, Union
+from typing import Any, Dict, List, Union
 
-
-import numpy as np
+# external imports
 import ray
+from omegaconf import DictConfig
+from SASUMO.utils.fleet_composition import (
+    create_veh_distributions,
+)
 
 # internal imports
 from SASUMO.params import ProcessConfig
-from SASUMO.utils import FleetComposition, beefy_import
+from SASUMO.utils import beefy_import
 from SASUMO.params.configuration import ReplayProcessConf
 from SASUMO.utils.utils import create_folder
 from SASUMO.utils.sumo_dist_builder import create_distribution
-
-TEMP_PATTERN = "__temp__"
-SUMO_HOME = os.environ.get("SUMO_HOME")
+from SASUMO.utils.constants import TEMP_PATTERN, SUMO_HOME
 
 
 class BaseSUMOFunc:
@@ -24,7 +25,6 @@ class BaseSUMOFunc:
         self,
         yaml_params: Union[dict, ReplayProcessConf],
         replay: bool = False,
-        replay_root: str = None,
         *args,
         **kwargs,
     ):
@@ -91,99 +91,32 @@ class BaseSUMOFunc:
 
     def create_veh_distribution(
         self,
-        *args: List[object],
-        output_file_name,
-        distribution_size,
-        distribution_common,
-        delta=None,
+        *args: List[DictConfig],
+        output_file_name: os.PathLike,
+        distribution_size: int,
+        distribution_name: str,
     ) -> None:
         """
         Creating the text input file
         """
-        tmp_dist_input_file = os.path.join(
-            self._params.Metadata.cwd, f"{TEMP_PATTERN}vehDist.txt"
+
+        create_veh_distributions(
+            args,
+            output_file_name=output_file_name,
+            distribution_size=distribution_size,
+            distribution_name=distribution_name,
+            seed=self._params.Metadata.random_seed,
         )
-
-        for type_group in args:
-
-            group_name = type_group[0].group
-
-            text_parameters = distribution_common[group_name].distribution_parameters
-
-            # compose the variables
-            vary_lines = []
-            for var in type_group:
-                dist_func = create_distribution(var.distribution.type)
-                sumo_dist_string = dist_func(val=var.val, **dict(var.distribution.params))
-                vary_lines.append(
-                    f"{var.variable_name};{sumo_dist_string}"
-                )
-
-            text_parameters = "\n".join([text_parameters, *vary_lines])
-
-            with open(tmp_dist_input_file, "w") as f:
-                """
-                Create a list of rows to write to the text file
-                """
-                f.write(text_parameters)
-
-            subprocess.run(
-                [
-                    "python",
-                    f"{SUMO_HOME}/tools/createVehTypeDistribution.py",
-                    tmp_dist_input_file,
-                    "--name",
-                    distribution_common[group_name].distribution_name,
-                    "-o",
-                    output_file_name,
-                    "--size",
-                    str(distribution_size),
-                    "--seed",
-                    str(self._params.Metadata.random_seed)
-                ]
-            )
-
-        return output_file_name
-
-    def fleet_composition(
-        self, base_route_file, fleet_composition, controlled_dist_name, other_dist_name
-    ):
-        """
-        This function creates a route distribution based on some fleet composition
-
-        #TODO: This needs to be reworked entirely.
-        """
-
-        output_file_path = os.path.join(
-            self._params.Metadata.cwd, TEMP_PATTERN + Path(base_route_file).name
-        )
-
-        fleet = {
-            controlled_dist_name: fleet_composition.distribution.sa_value,
-            other_dist_name: 1 - fleet_composition.distribution.sa_value,
-        }
-
-        f = FleetComposition(
-            fleet, seed=self._params.Metadata.random_seed, route_file=base_route_file
-        )
-
-        f.replace_vehType(output_path=output_file_path)
-
-        return output_file_path
 
     def post_processing(
         self,
     ) -> None:
         # TODO: internal=False is not always true, maybe a usecase for retry
-        mod = beefy_import(
-            self._params.get("PostProcessing").module, internal=False
-        )
+        mod = beefy_import(self._params.get("PostProcessing").module, internal=False)
 
         mod(
             *self._params.get("PostProcessing").arguments.get("args", ()),
-            **self._params.get("PostProcessing").arguments.get(
-                "kwargs", {}
-            ),
+            **self._params.get("PostProcessing").arguments.get("kwargs", {}),
         ).main()
 
     def cleanup(
@@ -232,7 +165,7 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
             self._params.log_info(f"Running {gen.function}")
             f = getattr(self, gen.function)
             out = f(*gen.arguments.args or [], **gen.arguments.kwargs)
-            if gen.passed_to_simulation:
+            if gen.get("passed_to_simulation", False):
                 output_dict[gen.output_name] = out
         return output_dict
 
