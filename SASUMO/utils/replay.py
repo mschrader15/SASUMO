@@ -7,7 +7,7 @@ import sys
 import click
 
 # from ..creator import SASUMO
-from SASUMO.params import SASUMOConf, ReplayProcessConf
+from SASUMO.params import Config, ReplayProcessConf
 from SASUMO.functions.function import BaseSUMOFunc
 
 # from ..functions import
@@ -27,7 +27,7 @@ class ReplaySASUMO:
         self._just_sim = just_sim
 
         self._s = ReplayProcessConf(
-            yaml_params=SASUMOConf(os.path.join(replay_root, "sasumo_params.yaml")),
+            yaml_params=Config(os.path.join(replay_root, "sasumo_params.yaml")),
             run_id=sample_num,
             new_dir=new_folder_location,
         )
@@ -81,7 +81,7 @@ class ReplaySASUMO:
         self,
     ) -> BaseSUMOFunc:
         return beefy_import(
-            self._s.SensitivityAnalysis.ManagerFunction.module.replace("Remote", "")
+            self._s.get("ManagerFunction").module.replace("Remote", "")
         )
 
     def _cp_sumo_files(

@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: EmissionDeviceSweep
+  name: Deterministic600TImes
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -12,7 +12,7 @@ Metadata:
 ParameterSweep:
   parallel_trials: 60 
   # N is the number of runs at each point in the sweep (for randomness)
-  "N": 10
+  "N": 600
   preprocessing: None
   ManagerFunction: 
     module: functions.RemoteEmissionsSUMOFunc
@@ -27,16 +27,16 @@ ParameterSweep:
       distribution: 
         type: uniform
         params:
-          start: .05
+          start: 1
           stop: 1
-          num: 95
+          num: 1
       
   Output: 
     module: functions.output.TotalEmissionsHandler
     arguments:
       kwargs:
         emissions_xml: ${Metadata.cwd}/__temp__emissions.out.xml
-        output_time_filter_lower: 1800
+        output_time_filter_lower: 3600
         output_time_filter_upper: 10800
         sim_step: 0.1
         save_output: True

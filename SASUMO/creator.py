@@ -266,7 +266,7 @@ def run(debug, smoke_test, finish_existing, settings_file):
 
         results = s.main()
 
-        analysis = s.analyze()
+        analysis = s.analyze(results)
 
         s.save_results(analysis, results)
 

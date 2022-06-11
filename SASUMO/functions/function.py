@@ -45,6 +45,9 @@ class BaseSUMOFunc:
         # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
+        # print that I am starting
+        print(f"{self._params.Metadata.run_id} is spawning")
+
     def _dump_parameters(
         self,
     ):
@@ -256,6 +259,8 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         self.post_processing()
 
         y = self.output
+
+        print(f"{self._params.Metadata.run_id} is finished. Cleaning up...")
 
         self.cleanup()
 

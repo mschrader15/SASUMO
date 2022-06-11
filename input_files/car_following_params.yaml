@@ -164,13 +164,14 @@ SensitivityAnalysis:
                 vClass;passenger
                 carFollowModel;IDM
                 emissionClass;PHEMlight/PC_G_EU4
-                lcKeepRight;uniform(2, 4)
                 jmDriveAfterYellowTime; uniform(0, 2)
                 lcCooperative; normal(1, 0.1);
+                lcKeepRight; normal(1, 0.1)
+                lcPushy;normal(0.2, 0.1)
                 decel; lognormal(2.225, 1.849); [0.1, 8]
                 actionStepLength; 0.2
-                jmTimegapMinor;4.5
-                impatience;uniform(0, 0.1)
+                jmTimegapMinor; 4.5
+                impatience; uniform(0, 0.1)
 
   Output: 
     module: functions.output.TotalEmissionsHandler
