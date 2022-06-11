@@ -12,7 +12,7 @@ import numpy as np
 from copy import deepcopy
 
 # internal imports
-from SASUMO.params import SASUMOConf
+from SASUMO.params import Config
 from SASUMO.utils import beefy_import, create_folder
 
 # external imports
@@ -31,7 +31,7 @@ SOBOL_ANALYSIS = lambda x: f"sobol_analysis_{x}.csv"
 class SASUMO:
     def __init__(self, yaml_file_path: str) -> None:
         # instantate the Settings4SASUMO class
-        self._settings = SASUMOConf(yaml_file_path)
+        self._settings = Config(yaml_file_path)
 
         # try to create the folder to work in.
         create_folder(self._settings.Metadata.output)
@@ -55,7 +55,7 @@ class SASUMO:
 
         # import the desired module
         self._f = None
-        self.main_fn_helper(self._settings.SensitivityAnalysis.ManagerFunction.module)
+        self.main_fn_helper(self._settings.get("ManagerFunction").module)
 
     def main_fn_helper(self, module_path: str) -> None:
         """
@@ -77,10 +77,11 @@ class SASUMO:
             if new_path:
                 sys.path.append(new_path)
 
-    
-    def _generate_seed(self, ):
+    def _generate_seed(
+        self,
+    ):
         # If the random seed is a part of the SA then we don't need them
-        if self._settings.SensitivityAnalysis.Variables.get("RandomSeed", ""):
+        if self._settings.get("Variables", {}).get("RandomSeed", ""):
             return None
         return random.randint(a=0, b=SEED)
 
@@ -130,8 +131,8 @@ class SASUMO:
             Tuple[float, float]:
         """
         return (
-            variable_obj.distribution.params.get("min", 0),
-            variable_obj.distribution.params.max,
+            variable_obj.distribution.params.get("lb", 0),
+            variable_obj.distribution.params.ub,
         )
 
     def _save_problem(
@@ -145,22 +146,28 @@ class SASUMO:
             ),
             "w",
         ) as f:
-            f.write(json.dumps(self._problem))
+            f.write(
+                json.dumps(
+                    self._problem,
+                    indent=4,
+                    quote_keys=True,
+                    trailing_commas=False,
+                )
+            )
 
-    def main(
-        self,
-        smoke_test=False
-    ) -> List[List[float]]:
+    def main(self, smoke_test=False) -> List[List[float]]:
 
         dispatch = []
         results = []
 
         # dispatch = [(i, self._spawn_process(i)) for i in range(self._settings.sensitivity_analysis.num_runs)]
-        for i, _ in enumerate((range(2), ) * 2 if smoke_test else self._samples):
+        for i, _ in enumerate((range(2),) * 2 if smoke_test else self._samples):
 
             dispatch.append([i, self._spawn_process(i)])
 
-            while len(dispatch) >= self._settings.SensitivityAnalysis.parallel_trials or (
+            while len(
+                dispatch
+            ) >= self._settings.SensitivityAnalysis.parallel_trials or (
                 i >= (len(self._samples) - 1) and dispatch
             ):
 
@@ -176,17 +183,17 @@ class SASUMO:
                         [ray.get(dispatch[j][1]), dispatch.pop(j)[0]]
                     )  # results.append([[ray.get(_id), i] for i, _id in dispatch])
 
-        return results
+        return sorted(results, key=lambda x: x[1])
 
     def _spawn_process(self, index: int) -> ray.ObjectRef:
 
         p = self._f.remote(
-             self._settings.generate_process(
-                process_var=self._samples[index], 
+            self._settings.generate_process(
+                process_var=self._samples[index],
                 process_id=str(index),
-                random_seed=self._generate_seed()
+                random_seed=self._generate_seed(),
             )
-            )
+        )
         # )
         return p.run.remote()
 
@@ -198,9 +205,9 @@ class SASUMO:
 
         self._f(
             yaml_params=self._settings.generate_process(
-                process_var=self._samples[index], 
+                process_var=self._samples[index],
                 process_id=str(index),
-                random_seed=self._generate_seed()
+                random_seed=self._generate_seed(),
             ),
         ).run()
 
@@ -217,6 +224,12 @@ class SASUMO:
             np.array(results),
         )
 
+    def analyze(self, results) -> None:
+
+        return sobol.analyze(
+            self._problem, np.array([r[0] for r in results]), print_to_console=True
+        )
+
 
 @click.command()
 @click.option(
@@ -225,19 +238,22 @@ class SASUMO:
 @click.option(
     "--smoke-test", is_flag=True, help="Run with Ray but for debugging simulations"
 )
+@click.option(
+    "--finish-existing",
+    is_flag=True,
+    help="Finish a sensitivity analysis that quit for some reason. It will replay the last # - CPU * 2, just to be safe",
+)
 @click.argument("settings_file")
-def run(debug, smoke_test, settings_file):
+def run(debug, smoke_test, finish_existing, settings_file):
 
     s = SASUMO(settings_file)
 
     if debug:
-        if "Remote" in s._settings.SensitivityAnalysis.ManagerFunction.module:
-            s._settings.SensitivityAnalysis.ManagerFunction.module = (
-                s._settings.SensitivityAnalysis.ManagerFunction.module.replace(
-                    "Remote", ""
-                )
+        if "Remote" in s._settings.get("ManagerFunction").module:
+            s._settings.get("ManagerFunction").module = s._settings.get("ManagerFunction").module.replace(
+                "Remote", ""
             )
-            s.main_fn_helper(s._settings.SensitivityAnalysis.ManagerFunction.module)
+            s.main_fn_helper(s._settings.get("ManagerFunction").module)
         s.debug_main()
     else:
         try:
@@ -247,13 +263,10 @@ def run(debug, smoke_test, settings_file):
             # if smoke_test:
             # ray.init(local_mode=smoke_test)
             ray.init()
-            
 
-        results = sorted([res for res in s.main(smoke_test) if res], key=lambda x: x[1])
+        results = s.main()
 
-        analysis = sobol.analyze(
-            s._problem, np.array([r[0] for r in results]), print_to_console=True
-        )
+        analysis = s.analyze()
 
         s.save_results(analysis, results)
 
