@@ -276,7 +276,7 @@ I haven’t included this parameter into the Sensitivity Analysis yet, but calib
 
 ## Fleet Composition
 
-### % Class-8 Truck
+### Percentage Class-8 Truck
 
 [AADT data from 2020 ](https://aldotgis.dot.state.al.us/TDMPublic/)shows 11% truck traffic.
 
@@ -409,7 +409,7 @@ As of *2022-06-13*, all of the sensitivity analyses work as such:
 
 **The question here is can I swap the uniform distribution for the actual distributions, ie lognormal, normal, etc?** If I do swap to a lognormal or normal distribution, do I change the mean or the variance? Both?
 
-Plan here is to fix the variance and sweep the mean value of a couple of distributions. Compare the results to a sensitivity analysis with uniform distributions. 
+Plan here is to fix the variance and sweep the mean value of a couple of distributions. Compare the results to a sensitivity analysis with uniform distributions.
 
 ### Analysis Questions
 
@@ -425,7 +425,8 @@ Should I compare the consumption dynamics? The goal here would be to prove that 
 
 ## Consolidated Questions for *Dr. Bittle*
 
-1. \[Should I analyze fuel consumption dynamics\]([Include Fuel Consumption Dynamics](Sobol%20Sensitivity%20Analysis%20Parameters.md#include-fuel-consumption-dynamics))?
-1. \[Does it make sense to consider more intra-fleet distributions than just uniform\]([Intra-fleet Parameter Distribution](Sobol%20Sensitivity%20Analysis%20Parameters.md#intra-fleet-parameter-distribution))?
-1. \[Should I separate out the car and truck car-following parameters\]([Class-8 Truck](Sobol%20Sensitivity%20Analysis%20Parameters.md#class-8-truck))?
-1. Any other thoughts on above?
+1. \[Should I analyze fuel consumption dynamics\]([Sobol Sensitivity Analysis Parameters > Include Fuel Consumption Dynamics](Sobol%20Sensitivity%20Analysis%20Parameters.md#include-fuel-consumption-dynamics))?
+1. \[Does it make sense to consider more intra-fleet distributions than just uniform\]([Sobol Sensitivity Analysis Parameters > Intra-fleet Parameter Distribution](Sobol%20Sensitivity%20Analysis%20Parameters.md#intra-fleet-parameter-distribution))?
+1. \[Should I separate out the car and truck car-following parameters\]([Sobol Sensitivity Analysis Parameters > Percentage Class-8 Truck](Sobol%20Sensitivity%20Analysis%20Parameters.md#percentage-class-8-truck))?
+1. Any other thoughts?
+   1. I will try and lay out my paper outline in *2022-06-15*‘s status update.
