@@ -45,8 +45,13 @@ class BaseSUMOFunc:
         # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
+        self._additional_sim_args: Dict = {}
+
         # print that I am starting
         print(f"{self._params.Metadata.run_id} is spawning")
+
+    def add_sim_arg(self, key: str, val: Any) -> None:
+        self._additional_sim_args[key] = val
 
     def _dump_parameters(
         self,
@@ -79,6 +84,7 @@ class BaseSUMOFunc:
                 "kwargs", {}
             ),
             **kwargs,
+            **self._additional_sim_args,
         )
 
     @property
@@ -165,7 +171,8 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
     ):
         output_dict = {}
         for gen in self._params.get("Generators", []):
-            self._params.log_info(f"Running {gen.function}")
+            if not self._replay:
+                self._params.log_info(f"Running {gen.function}")
             f = getattr(self, gen.function)
             out = f(*gen.arguments.args or [], **gen.arguments.kwargs)
             if gen.get("passed_to_simulation", False):
