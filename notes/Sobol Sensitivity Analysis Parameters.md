@@ -78,6 +78,8 @@ From [SUMO](https://sumo.dlr.de/docs/Car-Following-Models.html#tau):
 Early *Sobol Sensitivity Analysis* shows this as the **second** or **third** most sensitive parameter (when fleet composition is not considered)
 
 * `Distro_Width+Random_Seed/06.01.2022_17.19.09 = 0.45`
+* `Distro_Width+Sim_Step/06.13.2022_18.21.02` shows that any value above 3 causes unrealistic flow.
+* 
 
 #### Bound Selection
 
