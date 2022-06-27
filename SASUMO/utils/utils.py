@@ -2,10 +2,15 @@ from importlib import import_module
 import os
 import csv
 from tempfile import TemporaryFile
+from typing import Callable
 from lxml import etree
 from xml.dom import minidom
 import re
 import mmap
+
+
+SUMO_DIESEL_GRAM_TO_JOULE: float = 42.8e-3
+SUMO_GASOLINE_GRAM_TO_JOULE: float = 43.4e-3
 
 
 def create_folder(path, safe: bool = True) -> str:
@@ -73,8 +78,34 @@ def on_disk_xml_parser(xml_path: str, file_type: str) -> list:
     yield from Parser(file_path=xml_path, file_type=file_type).process()
 
 
-def regex_fc_total(file_path, time_low: float = None, time_high: float = None):
-    pattern = rb'(fuel="[\d\.]*")'
+def regex_energy_total(
+    file_path,
+    sim_step: float,
+    time_low: float = None,
+    time_high: float = None,
+    diesel_filter: Callable = None,
+    gasoline_filter: Callable = None,
+) -> float:
+    """
+    This function reads the emissions xml file and returns the total energy consumption in MJ in the time range.
+
+    Diesel and gasoline filters are needed to calculate the energy consumption of diesel and gasoline separately. It is applied to the vehicles' emissions class
+
+    Args:
+        file_path: path to the emissions xml file
+        sim_step: simulation step
+        time_low: lower time bound
+        time_high: upper time bound
+        diesel_filter: function to filter diesel vehicles, as a string
+        gasoline_filter: function to filter gasoline vehicles, as a string
+    
+    Returns:
+        total energy consumption in MJ
+    """
+    diesel_filter = eval(diesel_filter) if diesel_filter else False
+    gasoline_filter = eval(gasoline_filter) if gasoline_filter else False
+
+    pattern = rb'eclass="(\w+)\/(\w+?)".+fuel="([\d\.]*)"'
     fc_t = 0
     with open(file_path, "r+") as f:
         data = mmap.mmap(f.fileno(), 0)
@@ -98,7 +129,14 @@ def regex_fc_total(file_path, time_low: float = None, time_high: float = None):
             time_high_i = -1
 
         for match in re.finditer(pattern, data[time_low_i:time_high_i]):
-            fc = float(match.group(1).decode().split("=")[-1][1:-1])
+            fc = float(match.group(3).decode()) / 1e3  # this is in mg/s * 1 / 1000 g/mg
+            if diesel_filter or gasoline_filter:
+                if gasoline_filter(match.group(2).decode()):
+                    fc *= SUMO_GASOLINE_GRAM_TO_JOULE
+                elif diesel_filter(match.group(2).decode()):
+                    fc *= SUMO_DIESEL_GRAM_TO_JOULE
+                else:
+                    raise ValueError("The filter did not match any of the classes")
             fc_t += fc
         del data
-    return fc_t
+    return fc_t * sim_step  # output is in MJ

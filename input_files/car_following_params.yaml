@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: Distro_Width+Random_Seed+Apparent_Decel+Sim_Step+Emissions_Device
+  name: Distro_Width+Delta+Random_Seed
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -12,7 +12,7 @@ Metadata:
 SensitivityAnalysis:
   parallel_trials: 60 
   # N from N * (2D + 2) samples, should be a power of 2
-  N: 64
+  "N": 256
   calc_second_order: True
   preprocessing: None
   ManagerFunction: 
@@ -52,7 +52,7 @@ SensitivityAnalysis:
         params:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
           lb: 0.2
-          ub: 4
+          ub: 3
  
     Accel:
       variable_name: accel
@@ -62,7 +62,7 @@ SensitivityAnalysis:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
-          lb: .1
+          lb: .7
           ub: 6
 
     speedFactor:
@@ -87,16 +87,29 @@ SensitivityAnalysis:
           lb: 0.1
           ub: 6
 
+    delta:
+      variable_name: delta
+      group: car_following_parameter
+      val: ???
+      distribution: 
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          lb: 1
+          ub: 10
+
     # startupDelay:
     #   variable_name: startupDelay
     #   group: car_following_parameter
     #   val: ???
     #   distribution: 
-    #     type: uniform
+    #     type: lognormal
     #     params:
     #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
     #       lb: 0
     #       ub: 3
+    #       # mu: 0
+    #       # sd: 
 
 
     # /Distro_Width+Random_Seed/06.01.2022_17.19.09  shows that jmstopline gap does not matter
@@ -110,29 +123,6 @@ SensitivityAnalysis:
     #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
     #       lb: 0
     #       ub: 5
-
-    EmissionDeviceProbability:
-      variable_name: emission_probability
-      group: ""
-      val: ???
-      distribution: 
-        type: uniform
-        params:
-          lb: .05
-          ub: 1
-    
-    SimStep:
-      # this will be divided by 10 on the simulation side
-      variable_name: sim_step
-      group: ""
-      val: ???
-      distribution: 
-        type: uniform
-        data_type: math.floor
-        data_transform: "[.1, .2, .5, 1][val]"
-        params:
-          lb: 0
-          ub: 4
 
   Generators:
     - function: create_veh_distribution
@@ -164,11 +154,12 @@ SensitivityAnalysis:
     arguments:
       kwargs:
         emissions_xml: ${FileManager.emissions_file}
-        output_time_filter_lower: 1800
+        output_time_filter_lower: 3600
         output_time_filter_upper: 10800
-        sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        sim_step: 0.1
         save_output: True
-        emission_device_probability: ${SensitivityAnalysis.Variables.EmissionDeviceProbability.val}
 
   PostProcessing:
     module: tools.output_tools.USDOTCalibration
@@ -192,8 +183,6 @@ SimulationCore:
           simulation_output_path: ${SimulationCore.output_path}
           emissions_file_name: ${FileManager.emissions_file}
           seed: ${Metadata.random_seed}
-          sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
-          emission_device_probability: ${SensitivityAnalysis.Variables.EmissionDeviceProbability.val}
           veh_distribution_file: ${FileManager.veh_distribution_file}
         
 FileManager:
