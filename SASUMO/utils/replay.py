@@ -7,11 +7,12 @@ import sys
 import click
 
 # from ..creator import SASUMO
-from SASUMO.params import SASUMOConf, ReplayProcessConf
+from SASUMO.params import Config, ReplayProcessConf
 from SASUMO.functions.function import BaseSUMOFunc
 
 # from ..functions import
 from SASUMO.utils import beefy_import
+from traitlets import default
 
 
 class ReplaySASUMO:
@@ -21,15 +22,18 @@ class ReplaySASUMO:
         sample_num: int,
         new_folder_location: str = None,
         just_sim: bool = False,
+        gui: bool = False,
     ) -> None:
 
         self._replay_root = replay_root
         self._just_sim = just_sim
+        self._gui = gui
+
+        c = Config(os.path.join(replay_root, "sasumo_params.yaml"))
+        c.Metadata.output = replay_root
 
         self._s = ReplayProcessConf(
-            yaml_params=SASUMOConf(
-                os.path.join(replay_root, "sasumo_params.yaml"), replace_root=True
-            ),
+            yaml_params=c,
             run_id=sample_num,
             new_dir=new_folder_location,
         )
@@ -43,7 +47,10 @@ class ReplaySASUMO:
         )
 
         # update the simulation output path
-        self._s.update_simulation_output(new_folder_location)
+        self._s.update_simulation_output(
+            new_folder_location
+            or os.path.join(self._s.SimulationCore.output_path, "replay")
+        )
 
         # make the replay folder
         self._make_replay_folder()
@@ -82,9 +89,7 @@ class ReplaySASUMO:
     def _get_fn(
         self,
     ) -> BaseSUMOFunc:
-        return beefy_import(
-            self._s.SensitivityAnalysis.ManagerFunction.module.replace("Remote", "")
-        )
+        return beefy_import(self._s.get("ManagerFunction").module.replace("Remote", ""))
 
     def _cp_sumo_files(
         self,
@@ -102,19 +107,33 @@ class ReplaySASUMO:
             replay=True,
         )
 
+        # add in the GUI argument
+        mod.add_sim_arg("gui", self._gui)
+        mod.add_sim_arg("replay", True)
+
         if self._just_sim:
             mod.run_simulation()
         else:
-            mod.main()
+            mod.run()
 
 
 @click.command()
-@click.option("--results-dir", help="The location to same the replay outputs too")
+@click.option(
+    "--results-dir",
+    help="The location to same the replay outputs to. Defaults to <experiment_directory>/replay",
+)
 @click.option("--sample-num", help="The sample number that you wish to replay")
-@click.option("--just-sim", is_flag=True, help="Run just the simulation. Don't regenerate input files")
+@click.option(
+    "--just-sim",
+    is_flag=True,
+    help="Run just the simulation. Don't regenerate input files",
+)
+@click.option("--gui", is_flag=True, help="Use the GUI for the replay simulation")
 @click.argument("experiment_directory")
-def run(results_dir, sample_num, just_sim, experiment_directory):
-    replayer = ReplaySASUMO(experiment_directory, sample_num, results_dir, just_sim)
+def run(results_dir, sample_num, just_sim, gui, experiment_directory):
+    replayer = ReplaySASUMO(
+        experiment_directory, sample_num, results_dir, just_sim, gui
+    )
     replayer.main()
 
 

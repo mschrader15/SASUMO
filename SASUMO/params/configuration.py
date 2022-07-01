@@ -9,7 +9,7 @@ import math
 from datetime import datetime
 
 
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 
 OmegaConf.register_new_resolver(
@@ -20,14 +20,49 @@ OmegaConf.register_new_resolver(
 
 OmegaConf.register_new_resolver(
     "group",
-    lambda x, *, _root_: SASUMOConf.get_group(
+    lambda x, *, _root_: get_group(
         x,
         _root_,
     ),
 )
 
 
+def get_group(group: str, root: object) -> List[DictConfig]:
+    # This is probably not generalizable enough
+    # TODO make this traverse the whole tree
+    # TODO: resolve
+    return [
+        OmegaConf.select(
+            root,
+            path,
+        )
+        for path in _recursive_attr_finder(
+            root,
+            group,
+        )
+    ]
+
+
+def _recursive_attr_finder(
+    node: object, target_group: str, paths: List = [], current_path: str = ""
+) -> List[str]:
+    # sourcery skip: default-mutable-arg
+    for key, value in node.items():
+        if isinstance(value, DictConfig):
+            _recursive_attr_finder(
+                value, target_group, paths, current_path=".".join((current_path, key))
+            )
+        elif key == "group":
+            if value == target_group:
+                paths.append(current_path)
+            break
+    return paths
+
+
 class ReplayProcessConf:
+
+    VARIABLE_HEADING = "SensitivityAnalysis"
+    
     def __init__(
         self,
         yaml_params: object,
@@ -53,8 +88,17 @@ class ReplayProcessConf:
     def update_simulation_output(self, path: str) -> None:
         self._base_conf.SimulationCore.output_path = path
 
+    def get(self, path: str, default: Any = None) -> OmegaConf:
+        return OmegaConf.select(
+            self._base_conf, ".".join((self.VARIABLE_HEADING, path)), default=default
+        )
 
+
+# TODO Create a parent class for the Configuration classes to elimate copy paste code
 class ProcessSASUMOConf:
+
+    VARIABLE_HEADING = "SensitivityAnalysis"
+
     def __init__(
         self,
         yaml_params: object,
@@ -95,6 +139,11 @@ class ProcessSASUMOConf:
         except KeyError:
             return self.__getattribute__(__name)
 
+    def get(self, path: str, default: Any = None) -> OmegaConf:
+        return OmegaConf.select(
+            self._base_conf, ".".join((self.VARIABLE_HEADING, path)), default=default
+        )
+
     def create_logger(
         self,
     ) -> None:
@@ -114,12 +163,12 @@ class ProcessSASUMOConf:
     def update_values(self, process_var: List) -> None:
 
         for var, p_var in zip(
-            self._base_conf.SensitivityAnalysis.Variables.values(), process_var
+            self._base_conf.get(self.VARIABLE_HEADING).Variables.values(), process_var
         ):
             # default is float
             mode = var.distribution.get("data_type", "float")
             var.val = eval(f"{mode}({p_var})")
-            
+
             if var.distribution.get("data_transform", ""):
                 var.val = eval(
                     var.distribution.data_transform.replace("val", "var.val")
@@ -136,6 +185,9 @@ class ProcessSASUMOConf:
 
 
 class SASUMOConf:
+
+    VARIABLE_HEADING = "SensitivityAnalysis"
+
     def __init__(
         self,
         file_path: str,
@@ -156,17 +208,6 @@ class SASUMOConf:
             return self._s[__name]
         except KeyError:
             return self.__getattribute__(__name)
-
-    @staticmethod
-    def get_group(group: str, root: object):
-        # This is probably not generalizable enough
-        # TODO make this traverse the whole tree
-        # TODO: resolve
-        return [
-            g
-            for _, g in root.SensitivityAnalysis.Variables.items()
-            if g.get("group", False) == group
-        ]
 
     def to_omega(
         self,
@@ -222,20 +263,58 @@ class SASUMOConf:
             missing_dotlist=deepcopy(self._missing_dotlist),
             random_seed=random_seed,
         )
+
+    def get(self, path: str, default: Any = None) -> OmegaConf:
+        return OmegaConf.select(
+            self._s, ".".join((self.VARIABLE_HEADING, path)), default=default
+        )
         # )
 
 
-if __name__ == "__main__":
+class ProcessParameterSweepConf(ProcessSASUMOConf):
+    def __init__(
+        self,
+        yaml_params: object,
+        process_var: List,
+        process_id: str,
+        missing_dotlist: List[str],
+        random_seed: int,
+    ) -> None:
 
-    settings = SASUMOConf(
-        "/home/max/Development/airport-harper-sumo/SASUMO/input_files/car_following_params.yaml",
-        5,
+        self.VARIABLE_HEADING = "ParameterSweep"
+
+        super().__init__(
+            yaml_params, process_var, process_id, missing_dotlist, random_seed
+        )
+
+
+class ParameterSweepConf(SASUMOConf):
+    def __init__(self, file_path: str) -> None:
+
+        self.VARIABLE_HEADING = "ParameterSweep"
+
+        super().__init__(file_path)
+
+
+def Config(file_path: str) -> SASUMOConf:
+
+    mode: str = SASUMOConf(file_path).Metadata.get("mode", "sensitivity analyisis")
+    mode = mode.lower().strip(
+        " ",
     )
 
-    settings.get_sample_yaml()
+    return {"sensitivityanalysis": SASUMOConf, "parametersweep": ParameterSweepConf,}[
+        mode
+    ](file_path)
 
-    settings.create_run_config(5)
 
-    settings.to_yaml(
-        "/home/max/Development/airport-harper-sumo/SASUMO/input_files/car_following_params_test.yaml"
+def ProcessConfig(yaml_params: DictConfig, *args, **kwargs) -> ProcessSASUMOConf:
+    mode = OmegaConf.select(
+        yaml_params, "Metadata.mode", default="sensitivity analyisis"
     )
+    mode = mode.lower().strip(" ")
+
+    return {
+        "sensitivityanalysis": ProcessSASUMOConf,
+        "parametersweep": ProcessParameterSweepConf,
+    }[mode](yaml_params, *args, **kwargs)

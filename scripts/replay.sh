@@ -1,6 +1,5 @@
 #!/bin/bash
-export SIMULATION_ROOT="/home/max/remote/airport-harper-sumo"
-export SENSITIVITY_ANALYSIS_OUTPUT="/media/HDD/max/sasumo-files/Simplified_Car_Following"
+export SIMULATION_ROOT=$(pwd)
 
 # Variables required
 SAMPLE_NUM="1197"
@@ -12,8 +11,6 @@ DETECTOR_FILE="$SIMULATION_ROOT/sumo-xml/sasumo-xml/detectors/detectors.add.xml"
 
 # Try to fix the simulation params paths
 LAST_ROOT="/home/max/tmp/airport_harper_sumo_sasumo/Simplified_Car_Following"
-# replace file paths
-sed -i s+$LAST_ROOT+$SA_ROOT+g "$SA_ROOT/$RUN_DATETIME/sample_$SAMPLE_NUM/simulation_params.json"
 
 # try to make the replay directory
 mkdir -p "$SA_ROOT/$RUN_DATETIME/sample_$SAMPLE_NUM/$REPLAY_DIR_NAME"

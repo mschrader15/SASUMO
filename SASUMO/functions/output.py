@@ -1,5 +1,5 @@
 import os
-from SASUMO.utils import regex_fc_total
+from SASUMO.utils.utils import regex_energy_total
 
 
 class _OutputHandler:
@@ -28,8 +28,10 @@ class TotalEmissionsHandler(_OutputHandler):
         output_time_filter_lower: float,
         output_time_filter_upper: float,
         sim_step: float,
+        gasoline_filter: str = None,
+        diesel_filter: str = None,
         save_output: bool = False,
-        emission_device_probability: float = 1.
+        emission_device_probability: float = 1.0,
     ) -> None:
 
         super().__init__(cwd)
@@ -40,15 +42,19 @@ class TotalEmissionsHandler(_OutputHandler):
         self._sim_step = sim_step
         self._save_output = save_output
         self._emission_device_prob = emission_device_probability
+        self._diesel_filter = diesel_filter
+        self._gasoline_filter = gasoline_filter
 
     def _y(
         self,
     ):
-        output = (
-            regex_fc_total(
-                self._emissions_xml, self._time_filter_lower, self._time_filter_upper
-            )
-            * self._sim_step
+        output = regex_energy_total(
+            self._emissions_xml,
+            self._sim_step,
+            self._time_filter_lower,
+            self._time_filter_upper,
+            self._diesel_filter,
+            self._gasoline_filter,
         )
         # divide the output number by the float probability of a vehicle having an emissions device.
         output /= self._emission_device_prob
