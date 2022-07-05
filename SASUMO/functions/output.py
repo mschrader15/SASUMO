@@ -32,6 +32,7 @@ class TotalEmissionsHandler(_OutputHandler):
         diesel_filter: str = None,
         save_output: bool = False,
         emission_device_probability: float = 1.0,
+        **kwargs,
     ) -> None:
 
         super().__init__(cwd)
@@ -44,6 +45,7 @@ class TotalEmissionsHandler(_OutputHandler):
         self._emission_device_prob = emission_device_probability
         self._diesel_filter = diesel_filter
         self._gasoline_filter = gasoline_filter
+        self._kwargs = kwargs
 
     def _y(
         self,
@@ -55,6 +57,7 @@ class TotalEmissionsHandler(_OutputHandler):
             self._time_filter_upper,
             self._diesel_filter,
             self._gasoline_filter,
+            **self._kwargs
         )
         # divide the output number by the float probability of a vehicle having an emissions device.
         output /= self._emission_device_prob

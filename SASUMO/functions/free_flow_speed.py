@@ -17,10 +17,14 @@ def _read_polygons(radar_shape_file: str) -> list:
 
 
 def _box_finder(row: pd.DataFrame, polygons: list) -> str:
-    for poly_id, poly in polygons:
-        if poly.contains(Point(row["x"], row["y"])):
-            return poly_id
-    return "unknown"
+    return next(
+        (
+            poly_id
+            for poly_id, poly in polygons
+            if poly.contains(Point(row["x"], row["y"]))
+        ),
+        "unknown",
+    )
 
 
 def _read_fcd_output(fcd_output_file: str) -> pd.DataFrame:
@@ -53,9 +57,9 @@ def _cleanup_df(
 
 
 def _zone_data(df: pd.DataFrame) -> pd.DataFrame:
-    zone_data = {}
-    for name, _df in df.groupby("zone"):
-        zone_data[name] = _df.sort_values("time").copy()
+    zone_data = {
+        name: _df.sort_values("time").copy() for name, _df in df.groupby("zone")
+    }
     del df
     return zone_data
 
@@ -113,23 +117,34 @@ def _save_values(results: Dict[str, Dict[str, float]], output_file: str):
         json.dump(results, f, indent=4, trailing_commas=False, quote_keys=True)
 
 
-def calculate_free_flow_speed(
-    radar_shape_file: str, fcd_output_file: str, output_file: str, start_time: str
-):
-    _save_values(
-        _calculate_time_speed(
-            _filter_ids(
-                _zone_data(
-                    _cleanup_df(
-                        _read_fcd_output(fcd_output_file),
-                        pd.to_datetime(start_time),
-                        _read_polygons(radar_shape_file),
+class FreeFlowSpeed:
+    def __init__(self, *args, **kwargs) -> None:
+        self._args = args
+        self._kwargs = kwargs
+
+    def main(
+        self,
+    ) -> None:
+        self.calculate_free_flow_speed(*self._args, **self._kwargs)
+
+    @staticmethod
+    def calculate_free_flow_speed(
+        radar_shape_file: str, fcd_output_file: str, output_file: str, start_time: str
+    ):
+        _save_values(
+            _calculate_time_speed(
+                _filter_ids(
+                    _zone_data(
+                        _cleanup_df(
+                            _read_fcd_output(fcd_output_file),
+                            pd.to_datetime(start_time),
+                            _read_polygons(radar_shape_file),
+                        )
                     )
                 )
-            )
-        ),
-        output_file,
-    )
+            ),
+            output_file,
+        )
 
 
 # if __name__ == "__main__":

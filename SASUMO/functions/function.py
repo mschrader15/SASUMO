@@ -121,12 +121,12 @@ class BaseSUMOFunc:
         self,
     ) -> None:
         # TODO: internal=False is not always true, maybe a usecase for retry
-        mod = beefy_import(self._params.get("PostProcessing").module, internal=False)
-
-        mod(
-            *self._params.get("PostProcessing").arguments.get("args", ()),
-            **self._params.get("PostProcessing").arguments.get("kwargs", {}),
-        ).main()
+        for post_processor in self._params.get("PostProcessing", []):
+            mod = beefy_import(post_processor.module, internal=False)
+            mod(
+                *post_processor.arguments.get("args", []),
+                **post_processor.arguments.get("kwargs", {}),
+            ).main()
 
     def cleanup(
         self,
