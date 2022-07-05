@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation 
-  name: Deterministic600TImes
+  name: EmissionAggPeriodTest
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -12,7 +12,7 @@ Metadata:
 ParameterSweep:
   parallel_trials: 60 
   # N is the number of runs at each point in the sweep (for randomness)
-  "N": 600
+  "N": 10
   preprocessing: None
   ManagerFunction: 
     module: functions.RemoteEmissionsSUMOFunc
@@ -20,27 +20,30 @@ ParameterSweep:
   
   Variables: 
 
-    EmissionDeviceProbability:
-      variable_name: emission_probability
+    EmissionsAggPeriod:
+      variable_name: emission_agg_period
       group: ""
       val: ???
+      gen_function: "lambda x: [0.1, 1]" 
       distribution: 
-        type: uniform
+        type: list
         params:
-          start: 1
-          stop: 1
-          num: 1
+          start: 0.1
+          stop: 2
+          num: 20
       
   Output: 
     module: functions.output.TotalEmissionsHandler
     arguments:
       kwargs:
-        emissions_xml: ${Metadata.cwd}/__temp__emissions.out.xml
+        emissions_xml: ${FileManager.emissions_file}
         output_time_filter_lower: 3600
         output_time_filter_upper: 10800
-        sim_step: 0.1
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        x_filter: "lambda x: 630 <= x <= 1900"
+        sim_step: ${ParameterSweep.Variables.EmissionsAggPeriod.val}
         save_output: True
-        emission_device_probability: ${ParameterSweep.Variables.EmissionDeviceProbability.val}
 
   PostProcessing:
     module: tools.output_tools.USDOTCalibration
@@ -62,14 +65,15 @@ SimulationCore:
         kwargs:
           settings: ${Metadata.simulation_root}/sim-settings/sasumo/paramater_sweep/baseline.json
           simulation_output_path: ${SimulationCore.output_path}
-          emissions_file_name: ${ParameterSweep.Output.arguments.kwargs.emissions_xml}
-          seed: ${Metadata.random_seed}
+          emissions_file_name: ${FileManager.emissions_file}
           sim_step: 0.1
-          emission_device_probability: ${ParameterSweep.Variables.EmissionDeviceProbability.val}
+          emissions_agg_period: ${ParameterSweep.Variables.EmissionsAggPeriod.val}
+          seed: ${Metadata.random_seed}
+        
         
 FileManager:
-  - None
-
+  veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
+  emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
 
 
 
