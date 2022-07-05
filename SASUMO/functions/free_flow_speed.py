@@ -17,14 +17,11 @@ def _read_polygons(radar_shape_file: str) -> list:
 
 
 def _box_finder(row: pd.DataFrame, polygons: list) -> str:
-    return next(
-        (
-            poly_id
-            for poly_id, poly in polygons
-            if poly.contains(Point(row["x"], row["y"]))
-        ),
-        "unknown",
-    )
+    # sourcery skip: use-next
+    for poly_id, poly in polygons:
+        if poly.contains(Point(row["x"], row["y"])):
+            return poly_id
+    return "unknown"
 
 
 def _read_fcd_output(fcd_output_file: str) -> pd.DataFrame:
