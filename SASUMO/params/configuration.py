@@ -1,6 +1,7 @@
 from copy import deepcopy
 import os
 from random import sample
+import re
 from typing import Any, Dict, List
 import logging
 import math
@@ -59,6 +60,9 @@ def _recursive_attr_finder(
 
 
 class ReplayProcessConf:
+
+    VARIABLE_HEADING = "SensitivityAnalysis"
+    
     def __init__(
         self,
         yaml_params: object,
@@ -83,6 +87,11 @@ class ReplayProcessConf:
 
     def update_simulation_output(self, path: str) -> None:
         self._base_conf.SimulationCore.output_path = path
+
+    def get(self, path: str, default: Any = None) -> OmegaConf:
+        return OmegaConf.select(
+            self._base_conf, ".".join((self.VARIABLE_HEADING, path)), default=default
+        )
 
 
 # TODO Create a parent class for the Configuration classes to elimate copy paste code
@@ -182,9 +191,14 @@ class SASUMOConf:
     def __init__(
         self,
         file_path: str,
+        replace_root: bool = False
     ) -> None:
 
         self._s = OmegaConf.load(file_path)
+
+        if replace_root:
+            # this replaces the existing root with one relative to the files director
+            self._s.Metadata.output = os.path.split(file_path)[:-1][0] 
 
         # set the missing keys
         self._set_missing_keys()
@@ -249,7 +263,7 @@ class SASUMOConf:
             missing_dotlist=deepcopy(self._missing_dotlist),
             random_seed=random_seed,
         )
-    
+
     def get(self, path: str, default: Any = None) -> OmegaConf:
         return OmegaConf.select(
             self._s, ".".join((self.VARIABLE_HEADING, path)), default=default
@@ -258,7 +272,6 @@ class SASUMOConf:
 
 
 class ProcessParameterSweepConf(ProcessSASUMOConf):
-
     def __init__(
         self,
         yaml_params: object,
@@ -267,7 +280,7 @@ class ProcessParameterSweepConf(ProcessSASUMOConf):
         missing_dotlist: List[str],
         random_seed: int,
     ) -> None:
-        
+
         self.VARIABLE_HEADING = "ParameterSweep"
 
         super().__init__(
@@ -276,7 +289,6 @@ class ProcessParameterSweepConf(ProcessSASUMOConf):
 
 
 class ParameterSweepConf(SASUMOConf):
-
     def __init__(self, file_path: str) -> None:
 
         self.VARIABLE_HEADING = "ParameterSweep"
@@ -284,16 +296,16 @@ class ParameterSweepConf(SASUMOConf):
         super().__init__(file_path)
 
 
-
 def Config(file_path: str) -> SASUMOConf:
 
     mode: str = SASUMOConf(file_path).Metadata.get("mode", "sensitivity analyisis")
-    mode = mode.lower().strip(" ", )
+    mode = mode.lower().strip(
+        " ",
+    )
 
-    return {
-        "sensitivityanalysis": SASUMOConf,
-        "parametersweep": ParameterSweepConf,
-    }[mode](file_path)
+    return {"sensitivityanalysis": SASUMOConf, "parametersweep": ParameterSweepConf,}[
+        mode
+    ](file_path)
 
 
 def ProcessConfig(yaml_params: DictConfig, *args, **kwargs) -> ProcessSASUMOConf:

@@ -45,6 +45,14 @@ class BaseSUMOFunc:
         # TODO: create a prototype of Simulation (similar to OpenAI Gym)
         self._simulation: object = None
 
+        self._additional_sim_args: Dict = {}
+
+        # print that I am starting
+        print(f"{self._params.Metadata.run_id} is spawning")
+
+    def add_sim_arg(self, key: str, val: Any) -> None:
+        self._additional_sim_args[key] = val
+
     def _dump_parameters(
         self,
     ):
@@ -76,6 +84,7 @@ class BaseSUMOFunc:
                 "kwargs", {}
             ),
             **kwargs,
+            **self._additional_sim_args,
         )
 
     @property
@@ -112,12 +121,12 @@ class BaseSUMOFunc:
         self,
     ) -> None:
         # TODO: internal=False is not always true, maybe a usecase for retry
-        mod = beefy_import(self._params.get("PostProcessing").module, internal=False)
-
-        mod(
-            *self._params.get("PostProcessing").arguments.get("args", ()),
-            **self._params.get("PostProcessing").arguments.get("kwargs", {}),
-        ).main()
+        for post_processor in self._params.get("PostProcessing", []):
+            mod = beefy_import(post_processor.module, internal=False)
+            mod(
+                *post_processor.arguments.get("args", []),
+                **post_processor.arguments.get("kwargs", {}),
+            ).main()
 
     def cleanup(
         self,
@@ -162,7 +171,8 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
     ):
         output_dict = {}
         for gen in self._params.get("Generators", []):
-            self._params.log_info(f"Running {gen.function}")
+            if not self._replay:
+                self._params.log_info(f"Running {gen.function}")
             f = getattr(self, gen.function)
             out = f(*gen.arguments.args or [], **gen.arguments.kwargs)
             if gen.get("passed_to_simulation", False):
@@ -189,6 +199,8 @@ class EmissionsSUMOFunc(BaseSUMOFunc):
         self.post_processing()
 
         y = self.output
+
+        print(f"{self._params.Metadata.run_id} is finished. Cleaning up...")
 
         self.cleanup()
 
