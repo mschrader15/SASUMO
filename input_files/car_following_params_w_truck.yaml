@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: Distro_Width+Delta+Random_Seed+Stochastic_Route
+  name: Distro_Width+Delta+Random_Seed+Stochastic_Route+Truck
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -64,16 +64,15 @@ SensitivityAnalysis:
           lb: .7
           ub: 6
 
-    speedFactor:
-      variable_name: speedFactor
-      group: car_following_parameter
+    speedFactorStd:
+      variable_name: speedFactorStd
+      group: ""
       val: ???
       distribution:
         type: uniform
         params:
-          width: .2
-          lb: 0.8
-          ub: 1.3
+          lb: 0.01
+          ub: .5
 
     minGap:
       variable_name: minGap
@@ -96,6 +95,39 @@ SensitivityAnalysis:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
           lb: 1
           ub: 10
+    
+    fleetComposition:
+      variable_name: fleet_composition
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          lb: 0
+          ub: .2
+
+    truckSpeedFactor:
+      variable_name: speedFactor
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: .2
+          lb: 0.7
+          ub: 1.1
+    
+    truckAcceleration:
+      variable_name: accel
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          lb: 1
+          ub: 2.5
 
     # startupDelay:
     #   variable_name: startupDelay
@@ -128,20 +160,35 @@ SensitivityAnalysis:
       arguments:
         args:
           - variable_parameters: ${group:car_following_parameter}
-            fleet_composition: 1
+            fleet_composition: "1 - ${SensitivityAnalysis.Variables.fleetComposition.val}"
             vehicle_name: car
             distribution_parameters: |
+              speedFactor;normal(1.15,${SensitivityAnalysis.Variables.speedFactorStd.val});[0.8, 1.3]
               length;uniform(4,6)
               vClass;passenger
               carFollowModel;IDM
               emissionClass;PHEMlight/PC_G_EU4
-              lcKeepRight;uniform(2, 4)
               jmDriveAfterYellowTime; uniform(0, 2)
               lcCooperative; normal(1, 0.1);
-              decel; lognormal(2.225, 1.849); [0.1, 8]
+              decel; lognormal(2.225, 1.849); [0.2, 8]
               actionStepLength; 0.2
               jmTimegapMinor;4.5
               impatience;uniform(0, 0.1)
+          - variable_parameters: ${group:truck_car_following_parameter}
+            fleet_composition: ${SensitivityAnalysis.Variables.fleetComposition.val}
+            vehicle_name: truck
+            distribution_parameters: |
+              tau; normal(1.266, 0.507); [0.2, 3]
+              decel; uniform(2.5, 3.5)
+              minGap; normal(4.629724, 0.489382); [1.745753, 6.362827] 
+              carFollowModel;IDM
+              length;uniform(19,23)
+              vClass;trailer
+              emissionClass;PHEMlight/HDV_TT_D_EU6
+              actionStepLength;0.2
+              jmTimegapMinor;6.5
+              lcPushy;uniform(0, 0.05)
+              lcKeepRight;uniform(0, 1)
         kwargs:
           output_file_name: ${FileManager.veh_distribution_file}
           distribution_size: 1000
