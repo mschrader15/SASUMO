@@ -111,8 +111,8 @@ class SASUMO:
         return {
             "num_vars": len(self._settings.SensitivityAnalysis.Variables),
             "names": [
-                var.variable_name
-                for var in self._settings.SensitivityAnalysis.Variables.values()
+                name
+                for name, var in self._settings.SensitivityAnalysis.Variables.items()
             ],
             "bounds": [
                 self._compose_bounds(var)

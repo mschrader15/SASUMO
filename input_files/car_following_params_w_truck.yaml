@@ -12,7 +12,7 @@ Metadata:
 SensitivityAnalysis:
   parallel_trials: 60
   # N from N * (2D + 2) samples, should be a power of 2
-  "N": 128
+  "N": 512
   calc_second_order: True
   preprocessing: None
   ManagerFunction:
@@ -21,6 +21,7 @@ SensitivityAnalysis:
     arguments:
 
   Variables:
+
     DistWidth:
       variable_name: distro_width
       group: ""
@@ -63,16 +64,6 @@ SensitivityAnalysis:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
           lb: .7
           ub: 6
-
-    speedFactorStd:
-      variable_name: speedFactorStd
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 0.01
-          ub: .5
 
     minGap:
       variable_name: minGap
@@ -128,31 +119,28 @@ SensitivityAnalysis:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
           lb: 1
           ub: 2.5
-
-    # startupDelay:
-    #   variable_name: startupDelay
-    #   group: car_following_parameter
-    #   val: ???
-    #   distribution:
-    #     type: lognormal
-    #     params:
-    #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
-    #       lb: 0
-    #       ub: 3
-    #       # mu: 0
-    #       # sd:
-
-    # /Distro_Width+Random_Seed/06.01.2022_17.19.09  shows that jmstopline gap does not matter
-    # jmStoplineGap:
-    #   variable_name: jmStoplineGap
-    #   group: car_following_parameter
-    #   val: ???
-    #   distribution:
-    #     type: uniform
-    #     params:
-    #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
-    #       lb: 0
-    #       ub: 5
+    
+    truckTau:
+      variable_name: tau
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          lb: 0.2
+          ub: 3
+    
+    deltaTruck:
+      variable_name: delta
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.DistWidth.val}
+          lb: 1
+          ub: 10
 
   Generators:
     - function: create_veh_distribution
@@ -163,23 +151,22 @@ SensitivityAnalysis:
             fleet_composition: "1 - ${SensitivityAnalysis.Variables.fleetComposition.val}"
             vehicle_name: car
             distribution_parameters: |
-              speedFactor;normal(1.15,${SensitivityAnalysis.Variables.speedFactorStd.val});[0.8, 1.3]
+              speedFactor;normal(1.15,0.2);[0.8, 1.3]
               length;uniform(4,6)
               vClass;passenger
               carFollowModel;IDM
               emissionClass;PHEMlight/PC_G_EU4
               jmDriveAfterYellowTime; uniform(0, 2)
               lcCooperative; normal(1, 0.1);
-              decel; lognormal(2.225, 1.849); [0.2, 8]
+              decel; normal(2.225, 1.849); [0.2, 8]
               actionStepLength; 0.2
-              jmTimegapMinor;4.5
+              jmTimegapMinor;uniform(3.5, 6.5)
               impatience;uniform(0, 0.1)
           - variable_parameters: ${group:truck_car_following_parameter}
             fleet_composition: ${SensitivityAnalysis.Variables.fleetComposition.val}
             vehicle_name: truck
             distribution_parameters: |
-              tau; normal(1.266, 0.507); [0.2, 3]
-              decel; uniform(2.5, 3.5)
+              decel; normal(2.225, 1.849); [0.2, 8]
               minGap; normal(4.629724, 0.489382); [1.745753, 6.362827] 
               carFollowModel;IDM
               length;uniform(19,23)
