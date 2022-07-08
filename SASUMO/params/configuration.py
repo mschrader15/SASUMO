@@ -10,6 +10,12 @@ from datetime import datetime
 
 
 from omegaconf import OmegaConf, DictConfig
+from yaml import load, dump
+
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
 
 
 OmegaConf.register_new_resolver(
@@ -62,7 +68,7 @@ def _recursive_attr_finder(
 class ReplayProcessConf:
 
     VARIABLE_HEADING = "SensitivityAnalysis"
-    
+
     def __init__(
         self,
         yaml_params: object,
@@ -188,17 +194,13 @@ class SASUMOConf:
 
     VARIABLE_HEADING = "SensitivityAnalysis"
 
-    def __init__(
-        self,
-        file_path: str,
-        replace_root: bool = False
-    ) -> None:
+    def __init__(self, file_path: str, replace_root: bool = False) -> None:
 
         self._s = OmegaConf.load(file_path)
 
         if replace_root:
             # this replaces the existing root with one relative to the files director
-            self._s.Metadata.output = os.path.split(file_path)[:-1][0] 
+            self._s.Metadata.output = os.path.split(file_path)[:-1][0]
 
         # set the missing keys
         self._set_missing_keys()
@@ -268,6 +270,13 @@ class SASUMOConf:
         return OmegaConf.select(
             self._s, ".".join((self.VARIABLE_HEADING, path)), default=default
         )
+
+    @staticmethod
+    def var_2_records(path: str) -> Dict[str, float]:
+        with open(path, "r") as f:
+            _d = load(f, Loader=Loader)
+            variables = _d["SensitivityAnalysis"]["Variables"]
+            return {key: variables[key]["val"] for key in variables.keys()}
         # )
 
 

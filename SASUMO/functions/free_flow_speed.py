@@ -125,6 +125,21 @@ class FreeFlowSpeed:
         self.calculate_free_flow_speed(*self._args, **self._kwargs)
 
     @staticmethod
+    def speed_analysis_loader(path: str) -> Dict[str, float]:
+        """
+        Loads the simulation speed from a file. Flattens the dictionary and returns it.
+        """
+        with open(path, "r") as f:
+            d = json.load(
+                f,
+            )
+
+        for _, v in d.items():
+            v.pop("time_based")
+
+        return pd.json_normalize(d, sep="_").to_dict(orient="records")[0]
+
+    @staticmethod
     def calculate_free_flow_speed(
         radar_shape_file: str, fcd_output_file: str, output_file: str, start_time: str
     ):
