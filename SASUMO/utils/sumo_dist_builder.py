@@ -2,6 +2,11 @@ import math
 from types import FunctionType
 
 
+def _try_eval(val: str) -> float:
+    try:
+        return eval(val)
+    except TypeError:
+        return val
 
 def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> str:
     """
@@ -13,9 +18,12 @@ def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> 
         lb (float): min
         ub (float): max
     """
-    
-    width /= 2
-    uniform = [max(min((mult * width + val), ub), lb) for mult in [-1, 1]]
+    l = [val, width, lb, ub] 
+    for i, arg in enumerate(l):
+        if type(arg) is not float:
+            l[i] = _try_eval(arg)
+    l[1] /= 2
+    uniform = [max(min(mult * l[1] + l[0], l[-1]), l[2]) for mult in [-1, 1]]
     return f"uniform({uniform[0]},{uniform[1]})"
 
 
@@ -30,9 +38,13 @@ def lognormal(val: float, sd: float, lb: float, ub: float, *args, **kwargs) -> s
         ub (float): max
     """
     # probably shouldn't have to check like this, but the mean of the distribution should 
-    # not be less than the lb or greater than the ub 
-    val = max(min(val, ub), lb)
-    return f"lognormal({val},{sd});[{lb}, {ub}]"
+    # not be less than the lb or greater than the ub
+    l = [val, sd, lb, ub] 
+    for i, arg in enumerate(l):
+        if type(arg) is not float:
+            l[i] = _try_eval(arg)
+    val = max(min(l[0], l[-1]), l[2])
+    return f"lognormal({l[0]},{l[1]});[{l[2]}, {l[3]}]"
 
 def normal(val: float, sd: float, lb: float, ub: float) -> str:
     """
@@ -44,14 +56,18 @@ def normal(val: float, sd: float, lb: float, ub: float) -> str:
         lb (float): min
         ub (float): max
     """
-    # probably shouldn't have to check like this, but the mean of the distribution should 
-    # not be less than the lb or greater than the ub 
-    val = max(min(val, ub), lb)
-    return f"normal({val},{sd});[{lb}, {ub}]"
+    l = [val, sd, lb, ub] 
+    for i, arg in enumerate(l):
+        if type(arg) is not float:
+            l[i] = _try_eval(arg)
+    val = max(min(l[0], l[-1]), l[2])
+    return f"normal({l[0]},{l[1]});[{l[2]}, {l[3]}]"
 
 
 
 def create_distribution(type: str) -> FunctionType:
     return {
-        "uniform": uniform
+        "uniform": uniform,
+        "normal": normal,
+        "lognormal": lognormal,
     }[type]

@@ -32,6 +32,11 @@ OmegaConf.register_new_resolver(
     ),
 )
 
+OmegaConf.register_new_resolver(
+    "eval",
+    eval,
+)
+
 
 def get_group(group: str, root: object) -> List[DictConfig]:
     # This is probably not generalizable enough
