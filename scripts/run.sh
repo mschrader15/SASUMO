@@ -1,10 +1,8 @@
 # BUILD SASUMO
 . ./SASUMO/scripts/install.sh ./
 
-
-SETTINGS_FILE="/home/max/Development/airport-harper-sumo/SASUMO/input_files/car_following_params.yaml"
-
-CPUS="60"
+# specify the number of cpus
+CPUS=$(nproc)
 
 # change these for your own system
 export SENSITIVITY_ANALYSIS_OUTPUT=/home/max/tmp/sasumo-output
@@ -22,4 +20,4 @@ ray start --head --port=6379  --num-cpus=$CPUS
 
 # tail $NOHUP -f
 
-python SASUMO/SASUMO/creator.py $SETTINGS_FILE
+python SASUMO/SASUMO/creator.py $1

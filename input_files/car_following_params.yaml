@@ -1,6 +1,6 @@
 Metadata:
-  # The name will also show up as the main folder for simulation 
-  name: Distro_Width+Random_Seed+Apparent_Decel+Sim_Step+Emissions_Device
+  # The name will also show up as the main folder for simulation
+  name: Distro_Width+Random_Seed+Deterministic_Route+N_1024
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -10,18 +10,18 @@ Metadata:
   mode: SensitivityAnalysis
 
 SensitivityAnalysis:
-  parallel_trials: 60 
+  parallel_trials: 63
   # N from N * (2D + 2) samples, should be a power of 2
-  N: 64
+  "N": 1024
   calc_second_order: True
   preprocessing: None
-  ManagerFunction: 
+  ManagerFunction:
     module: functions.RemoteEmissionsSUMOFunc
-    # sensitivity analysis sample is inherently the first argument 
+    # sensitivity analysis sample is inherently the first argument
     arguments:
-  
-  Variables: 
 
+  Variables:
+  
     DistWidth:
       variable_name: distro_width
       group: ""
@@ -46,93 +46,71 @@ SensitivityAnalysis:
     Tau:
       variable_name: tau
       group: car_following_parameter
-      val: ??? 
+      val: ???
       distribution:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
           lb: 0.2
-          ub: 4
- 
+          ub: 3
+
     Accel:
       variable_name: accel
       group: car_following_parameter
       val: ???
-      distribution: 
+      distribution:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
-          lb: .1
+          lb: 1
           ub: 6
 
-    speedFactor:
-      variable_name: speedFactor
-      group: car_following_parameter
-      val: ???
-      distribution: 
-        type: uniform
-        params:
-          width: .2
-          lb: 0.8
-          ub: 1.3
-   
     minGap:
       variable_name: minGap
       group: car_following_parameter
       val: ???
-      distribution: 
+      distribution:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.DistWidth.val}
           lb: 0.1
           ub: 6
 
+    # delta:
+    #   variable_name: delta
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
+    #       lb: 1
+    #       ub: 10
+
     # startupDelay:
     #   variable_name: startupDelay
     #   group: car_following_parameter
     #   val: ???
-    #   distribution: 
-    #     type: uniform
+    #   distribution:
+    #     type: lognormal
     #     params:
     #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
     #       lb: 0
     #       ub: 3
-
+    #       # mu: 0
+    #       # sd:
 
     # /Distro_Width+Random_Seed/06.01.2022_17.19.09  shows that jmstopline gap does not matter
     # jmStoplineGap:
     #   variable_name: jmStoplineGap
     #   group: car_following_parameter
     #   val: ???
-    #   distribution: 
+    #   distribution:
     #     type: uniform
     #     params:
     #       width: ${SensitivityAnalysis.Variables.DistWidth.val}
     #       lb: 0
     #       ub: 5
-
-    EmissionDeviceProbability:
-      variable_name: emission_probability
-      group: ""
-      val: ???
-      distribution: 
-        type: uniform
-        params:
-          lb: .05
-          ub: 1
-    
-    SimStep:
-      # this will be divided by 10 on the simulation side
-      variable_name: sim_step
-      group: ""
-      val: ???
-      distribution: 
-        type: uniform
-        data_type: math.floor
-        data_transform: "[.1, .2, .5, 1][val]"
-        params:
-          lb: 0
-          ub: 4
 
   Generators:
     - function: create_veh_distribution
@@ -141,8 +119,9 @@ SensitivityAnalysis:
         args:
           - variable_parameters: ${group:car_following_parameter}
             fleet_composition: 1
-            vehicle_name: car  
+            vehicle_name: car
             distribution_parameters: |
+              speedFactor;normal(1.15,0.2);[0.8, 1.3]
               length;uniform(4,6)
               vClass;passenger
               carFollowModel;IDM
@@ -159,47 +138,66 @@ SensitivityAnalysis:
           distribution_size: 1000
           distribution_name: vehDist
 
-  Output: 
+  Output:
     module: functions.output.TotalEmissionsHandler
     arguments:
       kwargs:
         emissions_xml: ${FileManager.emissions_file}
-        output_time_filter_lower: 1800
-        output_time_filter_upper: 10800
-        sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
+        output_time_filter_lower: 3600
+        output_time_filter_upper: 14400
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        x_filter: "lambda x: 630 <= x <= 1900"
+        sim_step: 0.1
         save_output: True
-        emission_device_probability: ${SensitivityAnalysis.Variables.EmissionDeviceProbability.val}
 
   PostProcessing:
-    module: tools.output_tools.USDOTCalibration
-    path: ${Metadata.simulation_root}
-    arguments:
-      kwargs:
-        settings: ${Metadata.cwd}/simulation_params.json
-        historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
-        save_path: ${Metadata.cwd}/calibration_results.json
-    
+    - module: tools.output_tools.USDOTCalibration
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          settings: ${Metadata.cwd}/simulation_params.json
+          historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+          save_path: ${Metadata.cwd}/calibration_results.json
+
+    - module: functions.simulation_metrics.SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          trip_info_file: ${FileManager.tripinfo_file}
+          output_file_path: ${Metadata.cwd}/simulation_metrics.json
+          warmup_time: 3600
+          route_begin_ends:
+            EB: ["834845345#1", "gneE14"]
+            WB: ["115872656#4", "115872656#13.8"]
+          diesel_filter: "lambda x: 'truck' in x"
+
+    - module: functions.free_flow_speed.FreeFlowSpeed
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          radar_shape_file: ${Metadata.simulation_root}/sumo-xml/detectors/radar.polygon.add.xml
+          fcd_output_file: ${FileManager.fcd_file}
+          output_file: ${Metadata.cwd}/speed_analysis.json
+          start_time: "2020-02-24T05:00:00"
+
 SimulationCore:
   preprocessing: None
   output_path: ${Metadata.cwd}
 
-  SimulationFunction:  
-      module: runners.sasumo.NoTraciSimulationSASUMO
-      path: ${Metadata.simulation_root}
-      arguments: # Not including the generator arguments marked for being passed to simulation
-        kwargs:
-          settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
-          simulation_output_path: ${SimulationCore.output_path}
-          emissions_file_name: ${FileManager.emissions_file}
-          seed: ${Metadata.random_seed}
-          sim_step: ${SensitivityAnalysis.Variables.SimStep.val}
-          emission_device_probability: ${SensitivityAnalysis.Variables.EmissionDeviceProbability.val}
-          veh_distribution_file: ${FileManager.veh_distribution_file}
-        
+  SimulationFunction:
+    module: runners.sasumo.NoTraciSimulationSASUMO
+    path: ${Metadata.simulation_root}
+    arguments: # Not including the generator arguments marked for being passed to simulation
+      kwargs:
+        settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
+        simulation_output_path: ${SimulationCore.output_path}
+        emissions_file_name: ${FileManager.emissions_file}
+        seed: ${Metadata.random_seed}
+        veh_distribution_file: ${FileManager.veh_distribution_file}
+
 FileManager:
   veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
   emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
-
-
-
-
+  tripinfo_file: ${Metadata.cwd}/__temp__tripinfo.out.xml
+  fcd_file: ${Metadata.cwd}/__temp__fcd.out.xml

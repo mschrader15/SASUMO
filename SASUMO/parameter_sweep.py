@@ -48,9 +48,12 @@ class ParameterSweep(SASUMO):
         n_each = self._settings.get("N")
 
         samples = [
-            np.linspace(**var.distribution.params)
+            eval(var.get("gen_function"))(var)
+            if var.get("gen_function", "")
+            else np.linspace(**var.distribution.params)
             for _, var in self._settings.get("Variables", {}).items()
         ]
+
         samples = list(product(*samples)) * n_each
         samples = np.array(samples)
 
@@ -136,7 +139,7 @@ class ParameterSweep(SASUMO):
             np.array(results),
         )
 
-    def analyze(self, results) -> None:
+    def analyze(self, *args, **kwargs) -> None:
 
         pass
 
@@ -160,9 +163,9 @@ def run(debug, smoke_test, finish_existing, settings_file):
 
     if debug:
         if "Remote" in s._settings.get("ManagerFunction").module:
-            s._settings.get("ManagerFunction").module = s._settings.get("ManagerFunction").module.replace(
-                "Remote", ""
-            )
+            s._settings.get("ManagerFunction").module = s._settings.get(
+                "ManagerFunction"
+            ).module.replace("Remote", "")
             s.main_fn_helper(s._settings.get("ManagerFunction").module)
         s.debug_main()
     else:
@@ -176,7 +179,7 @@ def run(debug, smoke_test, finish_existing, settings_file):
 
         results = s.main()
 
-        analysis = s.analyze()
+        analysis = s.analyze(results)
 
         s.save_results(analysis, results)
 

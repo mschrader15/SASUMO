@@ -2,7 +2,7 @@
 . ./SASUMO/scripts/install.sh ./
 
 
-SETTINGS_FILE="SASUMO/input_files/param_sweeps/EmissionsProbability.yaml"
+SETTINGS_FILE="SASUMO/input_files/param_sweeps/EmissionsAggPeriod.yaml"
 
 CPUS="60"
 

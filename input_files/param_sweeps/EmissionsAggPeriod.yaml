@@ -1,0 +1,80 @@
+Metadata:
+  # The name will also show up as the main folder for simulation 
+  name: EmissionAggPeriodTest
+  author: mcschrader@crimson.ua.edu
+  output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
+  run_id: ???
+  cwd: ${.output}/${.run_id}
+  simulation_root: ${oc.env:AIRPORT_HARPER_SUMO}
+  random_seed: ???
+  mode: ParameterSweep
+
+ParameterSweep:
+  parallel_trials: 60 
+  # N is the number of runs at each point in the sweep (for randomness)
+  "N": 10
+  preprocessing: None
+  ManagerFunction: 
+    module: functions.RemoteEmissionsSUMOFunc
+    arguments:
+  
+  Variables: 
+
+    EmissionsAggPeriod:
+      variable_name: emission_agg_period
+      group: ""
+      val: ???
+      gen_function: "lambda x: [0.1, 1]" 
+      distribution: 
+        type: list
+        params:
+          start: 0.1
+          stop: 2
+          num: 20
+      
+  Output: 
+    module: functions.output.TotalEmissionsHandler
+    arguments:
+      kwargs:
+        emissions_xml: ${FileManager.emissions_file}
+        output_time_filter_lower: 3600
+        output_time_filter_upper: 10800
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        x_filter: "lambda x: 630 <= x <= 1900"
+        sim_step: ${ParameterSweep.Variables.EmissionsAggPeriod.val}
+        save_output: True
+
+  PostProcessing:
+    module: tools.output_tools.USDOTCalibration
+    path: ${Metadata.simulation_root}
+    arguments:
+      kwargs:
+        settings: ${Metadata.cwd}/simulation_params.json
+        historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+        save_path: ${Metadata.cwd}/calibration_results.json
+    
+SimulationCore:
+  preprocessing: None
+  output_path: ${Metadata.cwd}
+
+  SimulationFunction:  
+      module: runners.sasumo.NoTraciSimulationSASUMO
+      path: ${Metadata.simulation_root}
+      arguments: # Not including the generator arguments marked for being passed to simulation
+        kwargs:
+          settings: ${Metadata.simulation_root}/sim-settings/sasumo/paramater_sweep/baseline.json
+          simulation_output_path: ${SimulationCore.output_path}
+          emissions_file_name: ${FileManager.emissions_file}
+          sim_step: 0.1
+          emissions_agg_period: ${ParameterSweep.Variables.EmissionsAggPeriod.val}
+          seed: ${Metadata.random_seed}
+        
+        
+FileManager:
+  veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
+  emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
+
+
+
+
