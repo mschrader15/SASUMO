@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: Random_Seed+Deterministic_Route+Time_Gap+All_Dev+Uniform+2_Hours+RegenerateDeterministicRoute
+  name: Random_Seed+RegenerateDeterministicRoute+Uniform+2_Hours+LC_Params
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -40,19 +40,20 @@ SensitivityAnalysis:
       distribution:
         type: uniform
         params:
-          width: ${SensitivityAnalysis.Variables.TauDev.val}
+          # width: ${SensitivityAnalysis.Variables.TauDev.val}
+          width: 1.5
           lb: 0.2  # can't be lower than action step
           ub: 3
 
-    TauDev:
-      variable_name: tau_dev
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 1.014
-          ub: 2.028
+    # TauDev:
+    #   variable_name: tau_dev
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 1.014
+    #       ub: 2.028
 
     Accel:
       variable_name: accel
@@ -61,40 +62,41 @@ SensitivityAnalysis:
       distribution:
         type: uniform
         params:
-          width: ${SensitivityAnalysis.Variables.AccelDev.val}
+          # width: ${SensitivityAnalysis.Variables.AccelDev.val}
+          width: 3
           lb: 1
           ub: 6
     
-    AccelDev:
-      variable_name: accel_dev
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 0.555
-          ub: 6.8576
+    # AccelDev:
+    #   variable_name: accel_dev
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 0.555
+    #       ub: 6.8576
 
-    Decel:
-      variable_name: decel
-      group: car_following_parameter
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          width: ${SensitivityAnalysis.Variables.DecelDev.val}
-          lb: 1
-          ub: 8
+    # Decel:
+    #   variable_name: decel
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.DecelDev.val}
+    #       lb: 1
+    #       ub: 8
     
-    DecelDev:
-      variable_name: decel_dev
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 1.5766
-          ub: 3.1532
+    # DecelDev:
+    #   variable_name: decel_dev
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 1.5766
+    #       ub: 3.1532
 
     minGap:
       variable_name: minGap
@@ -103,19 +105,20 @@ SensitivityAnalysis:
       distribution:
         type: uniform
         params:
-          width: ${SensitivityAnalysis.Variables.minGapDev.val}
+          # width: ${SensitivityAnalysis.Variables.minGapDev.val}
+          width: 2.304
           lb: 0.1
           ub: 6
     
-    minGapDev:
-      variable_name: minGapDev
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 2.304
-          ub: 4.608
+    # minGapDev:
+    #   variable_name: minGapDev
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 2.304
+    #       ub: 4.608
     
     speedFactor:
       variable_name: speedFactor
@@ -124,19 +127,19 @@ SensitivityAnalysis:
       distribution:
         type: uniform
         params:
-          width: ${SensitivityAnalysis.Variables.speedDeviation.val}
+          width: 0.1
           lb: 0.8
           ub: 1.3
     
-    speedDeviation:
-      variable_name: speedDeviation
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 0.05
-          ub: 0.3
+    # speedDeviation:
+    #   variable_name: speedDeviation
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 0.05
+    #       ub: 0.3
 
     # delta:
     #   variable_name: delta
@@ -187,11 +190,11 @@ SensitivityAnalysis:
               emissionClass;PHEMlight/PC_G_EU4
               # lcKeepRight;uniform(2, 4)
               jmDriveAfterYellowTime; uniform(0, 2)
-              lcCooperative; normal(1, 0.1);
-              # decel; normal(2.225, 1.849); [0.1, 8]
+              # lcCooperative; normal(1, 0.1);
+              decel; lognormal(2.225, 1.849); [0.1, 8]
               actionStepLength; 0.2
               jmTimegapMinor;4.5
-              impatience;uniform(0, 0.1)
+              # impatience;uniform(0, 0.1)
         kwargs:
           output_file_name: ${FileManager.veh_distribution_file}
           distribution_size: 1000
@@ -203,7 +206,7 @@ SensitivityAnalysis:
       kwargs:
         emissions_xml: ${FileManager.emissions_file}
         output_time_filter_lower: 3600
-        output_time_filter_upper: 14400
+        output_time_filter_upper: 10800
         diesel_filter: "lambda x: 'D' in x"
         gasoline_filter: "lambda x: 'G' in x"
         x_filter: "lambda x: 630 <= x <= 1900"

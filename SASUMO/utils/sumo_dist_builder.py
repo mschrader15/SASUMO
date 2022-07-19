@@ -8,6 +8,20 @@ def _try_eval(val: str) -> float:
     except TypeError:
         return val
 
+def _process_args(val: float, lb: float, ub: float, sd: float = None, width: float = None,) -> list:
+    """
+    This processes the arguments passed to the distribution function
+    """
+    l = [val, sd, lb, ub, width] 
+    for i, arg in enumerate(l):
+        if arg and (type(arg) is not float):
+            l[i] = _try_eval(arg)
+    # replace sd with width if sd is not provided
+    if l[1] is None:
+        l[1] = l[4] / 2
+    l[0] = max(min(l[0], l[3]), l[2])
+    return l
+
 def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> str:
     """
     This generates a uniform distribution
@@ -27,7 +41,7 @@ def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> 
     return f"uniform({uniform[0]},{uniform[1]})"
 
 
-def lognormal(val: float, sd: float, lb: float, ub: float, *args, **kwargs) -> str:
+def lognormal(val: float, lb: float, ub: float, sd: float = None, width: float = None, *args, **kwargs) -> str:
     """
     This generates a uniform distribution
 
@@ -37,16 +51,14 @@ def lognormal(val: float, sd: float, lb: float, ub: float, *args, **kwargs) -> s
         lb (float): min
         ub (float): max
     """
-    # probably shouldn't have to check like this, but the mean of the distribution should 
-    # not be less than the lb or greater than the ub
-    l = [val, sd, lb, ub] 
-    for i, arg in enumerate(l):
-        if type(arg) is not float:
-            l[i] = _try_eval(arg)
-    val = max(min(l[0], l[-1]), l[2])
-    return f"lognormal({l[0]},{l[1]});[{l[2]}, {l[3]}]"
+    l = _process_args(val, lb, ub, sd, width)
 
-def normal(val: float, sd: float, lb: float, ub: float) -> str:
+    #  from https://stats.stackexchange.com/a/95506 cause I'm dumb...
+    lns = math.sqrt(math.log((l[1] / l[0]) ** 2 + 1)) 
+    lnmu = math.log(l[0]) - 0.5 * math.log((l[1] / l[0]) ** 2 + 1)
+    return f"lognormal({lnmu},{lns});[{l[2]}, {l[3]}]"
+
+def normal(val: float, lb: float, ub: float, sd: float = None, width: float = None, dist: str = "normal", *args, **kwargs) -> str:
     """
     This generates a uniform distribution
 
@@ -56,12 +68,8 @@ def normal(val: float, sd: float, lb: float, ub: float) -> str:
         lb (float): min
         ub (float): max
     """
-    l = [val, sd, lb, ub] 
-    for i, arg in enumerate(l):
-        if type(arg) is not float:
-            l[i] = _try_eval(arg)
-    val = max(min(l[0], l[-1]), l[2])
-    return f"normal({l[0]},{l[1]});[{l[2]}, {l[3]}]"
+    l = _process_args(val, lb, ub, sd, width)
+    return f"{dist}({l[0]},{l[1]});[{l[2]}, {l[3]}]"
 
 
 
