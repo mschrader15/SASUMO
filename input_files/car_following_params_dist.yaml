@@ -1,0 +1,414 @@
+Metadata:
+  # The name will also show up as the main folder for simulation
+  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours
+  author: mcschrader@crimson.ua.edu
+  output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
+  run_id: ???
+  cwd: ${.output}/${.run_id}
+  simulation_root: ${oc.env:AIRPORT_HARPER_SUMO}
+  random_seed: ${SensitivityAnalysis.Variables.RandomSeed.val}
+  mode: SensitivityAnalysis
+
+SensitivityAnalysis:
+  parallel_trials: 63
+  # N from N * (2D + 2) samples, should be a power of 2
+  "N": 1024
+  calc_second_order: True
+  preprocessing: None
+  ManagerFunction:
+    module: functions.RemoteEmissionsSUMOFunc
+    # sensitivity analysis sample is inherently the first argument
+    arguments:
+
+  Variables:
+  
+    RandomSeed:
+      variable_name: random_seed
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        data_type: int
+        params:
+          lb: 1
+          ub: 1000000
+
+    Tau:
+      variable_name: tau
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.TauDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.TauDev.val}
+          lb: 0.2  # can't be lower than action step
+          ub: 3 # any higher and it leads to weird behavior
+
+    TauDev:
+      variable_name: tau_dev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 1.014
+          ub: 2.028
+    
+    TauDist:
+      variable_name: tau_dist
+      group: ""
+      val: ???
+      distribution:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    Accel:
+      variable_name: accel
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.AccelDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.AccelDev.val}
+          lb: 1
+          ub: 6
+    
+    AccelDev:
+      variable_name: accel_dev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 0.555
+          ub: 6.8576
+
+    AccelDist:
+      variable_name: accel_dist
+      group: ""
+      val: ???
+      distribution:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    Decel:
+      variable_name: decel
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.DecelDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.DecelDev.val}
+          lb: 1
+          ub: 8
+    
+    DecelDev:
+      variable_name: decel_dev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 1.5766
+          ub: 3.1532
+    
+    DecelDist:
+      variable_name: decel_dist
+      group: ""
+      val: ???
+      distribution:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    minGap:
+      variable_name: minGap
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.minGapDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.minGapDev.val}
+          lb: 0.1
+          ub: 6
+    
+    minGapDev:
+      variable_name: minGapDev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 2.304
+          ub: 4.608
+
+    minGapDist:
+      variable_name: minGap_dist
+      group: ""
+      val: ???
+      distribution:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+    
+    speedFactor:
+      variable_name: speedFactor
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.speedFactorDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.speedDeviation.val}
+          lb: 0.8
+          ub: 1.3
+    
+    speedDeviation:
+      variable_name: speedDeviation
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 0.05
+          ub: 0.3
+    
+    speedFactorDist:
+      variable_name: speedFactor_dist
+      group: ""
+      val: ???
+      distribution:
+        data_transform: "['uniform', 'normal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 2
+
+    
+    jmTimegapMinor:
+      variable_name: jmTimegapMinor
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
+          lb: 1
+          ub: 6
+    
+    jmTimegapMinorDev:
+      variable_name: jmTimegapMinorDev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 2
+          ub: 4
+    
+    impatience:
+      variable_name: impatience
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width:  ${SensitivityAnalysis.Variables.impatienceDev.val}
+          lb: 0
+          ub: .8
+    
+    impatienceDev:
+      variable_name: impatienceDev
+      group: 
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: .1
+          ub: .3
+    
+    lcKeepRight:
+      variable_name: lcKeepRight
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.lcKeepRightDev.val}
+          lb: 0.1
+          ub: 1.2
+    
+    lcKeepRightDev:
+      variable_name: lcKeepRightDev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 0.1
+          ub: 1
+    
+    lcAssertive:
+      variable_name: lcAssertive
+      group: car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
+          lb: 0.1
+          ub: 3
+    
+
+    lcAssertiveDev:
+      variable_name: lcAssertiveDev
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 0.1
+          ub: 1
+
+    # delta:
+    #   variable_name: delta
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.deltaDev.val}
+    #       lb: 1
+    #       ub: 40
+    
+    # deltaDev:
+    #   variable_name: delta
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 7.248  # one std from https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf 
+    #       ub: 14.496  # two std https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf
+
+    # Doesn't matter. See Random_Seed+Deterministic_Route+Time_Gap+Impatience+All_Dev/07.10.2022_11.50.10
+    # impatience:
+    #   variable_name: impatience
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: 0.1
+    #       lb: 0
+    #       ub: 0.5
+
+
+  Generators:
+    - function: create_veh_distribution
+      output_name: veh_distribution_file
+      arguments:
+        args:
+          - variable_parameters: ${group:car_following_parameter}
+            fleet_composition: 1
+            vehicle_name: car
+            distribution_parameters: |
+              length;uniform(4,6)
+              vClass;passenger
+              carFollowModel;IDM
+              emissionClass;PHEMlight/PC_G_EU4
+              jmDriveAfterYellowTime; uniform(0, 2)
+              lcCooperative; normal(1, 0.1);
+              # decel; normal(2.225, 1.849); [0.1, 8]
+              actionStepLength; 0.2
+              # jmTimegapMinor;uniform(3, 6)
+              # impatience;uniform(0, 0.2)
+              # lcKeepRight;uniform(0.3, 0.7)
+              lcPushy;uniform(0, 0.2)
+
+        kwargs:
+          output_file_name: ${FileManager.veh_distribution_file}
+          distribution_size: 1000
+          distribution_name: vehDist
+
+  Output:
+    module: functions.output.TotalEmissionsHandler
+    arguments:
+      kwargs:
+        emissions_xml: ${FileManager.emissions_file}
+        output_time_filter_lower: 3600
+        output_time_filter_upper: 10800
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        x_filter: "lambda x: 630 <= x <= 1900"
+        sim_step: 0.1
+        save_output: True
+
+  PostProcessing:
+    - module: tools.output_tools.USDOTCalibration
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          settings: ${Metadata.cwd}/simulation_params.json
+          historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+          save_path: ${Metadata.cwd}/calibration_results.json
+
+    - module: functions.simulation_metrics.SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          trip_info_file: ${FileManager.tripinfo_file}
+          output_file_path: ${Metadata.cwd}/simulation_metrics.json
+          warmup_time: 3600
+          route_begin_ends:
+            EB: ["834845345#1", "gneE14"]
+            WB: ["115872656#4", "115872656#13.8"]
+          diesel_filter: "lambda x: 'truck' in x"
+    
+    - module: functions.per_phase_delay.E3SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          e3_output_file: ${FileManager.e3_file}
+          output_file_path: ${Metadata.cwd}/per_phase_delay.json
+          warmup_time: 3600
+
+    - module: functions.free_flow_speed.FreeFlowSpeed
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          radar_shape_file: ${Metadata.simulation_root}/sumo-xml/detectors/radar.polygon.add.xml
+          fcd_output_file: ${FileManager.fcd_file}
+          output_file: ${Metadata.cwd}/speed_analysis.json
+          start_time: "2020-02-24T05:00:00"
+
+SimulationCore:
+  preprocessing: None
+  output_path: ${Metadata.cwd}
+
+  SimulationFunction:
+    module: runners.sasumo.NoTraciSimulationSASUMO
+    path: ${Metadata.simulation_root}
+    arguments: # Not including the generator arguments marked for being passed to simulation
+      kwargs:
+        settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
+        simulation_output_path: ${SimulationCore.output_path}
+        emissions_file_name: ${FileManager.emissions_file}
+        seed: ${Metadata.random_seed}
+        veh_distribution_file: ${FileManager.veh_distribution_file}
+
+FileManager:
+  veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
+  emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
+  tripinfo_file: ${Metadata.cwd}/__temp__tripinfo.out.xml
+  fcd_file: ${Metadata.cwd}/__temp__fcd.out.xml
+  e3_file: ${Metadata.cwd}/__temp__e3.out.xml

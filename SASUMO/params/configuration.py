@@ -32,6 +32,11 @@ OmegaConf.register_new_resolver(
     ),
 )
 
+OmegaConf.register_new_resolver(
+    "eval",
+    eval,
+)
+
 
 def get_group(group: str, root: object) -> List[DictConfig]:
     # This is probably not generalizable enough
@@ -303,6 +308,13 @@ class ParameterSweepConf(SASUMOConf):
         self.VARIABLE_HEADING = "ParameterSweep"
 
         super().__init__(file_path)
+    
+    @staticmethod
+    def var_2_records(path: str) -> Dict[str, float]:
+        with open(path, "r") as f:
+            _d = load(f, Loader=Loader)
+            variables = _d["ParameterSweep"]["Variables"]
+            return {key: variables[key]["val"] for key in variables.keys()}
 
 
 def Config(file_path: str) -> SASUMOConf:

@@ -1,9 +1,6 @@
 # BUILD SASUMO
 . ./SASUMO/scripts/install.sh ./
 
-
-SETTINGS_FILE="SASUMO/input_files/param_sweeps/EmissionsAggPeriod.yaml"
-
 CPUS="60"
 
 # change these for your own system
@@ -22,4 +19,4 @@ ray start --head --port=6379  --num-cpus=$CPUS
 
 # tail $NOHUP -f
 
-python SASUMO/SASUMO/parameter_sweep.py $SETTINGS_FILE
+python SASUMO/SASUMO/parameter_sweep.py $1
