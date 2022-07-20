@@ -1,7 +1,8 @@
-SALib
+git+https://github.com/mschrader15/SALib.git@main
 modin
 ray[default]
 numba
 omegaconf
 lxml
 regex
+openturns

@@ -28,6 +28,16 @@ class SimulationMetrics:
         )
 
     @staticmethod
+    def load_traffic_metrics(file_path: str) -> dict:
+        """
+        Loads the simulation metrics from a file. Flattens the dictionary and returns it.
+        """
+        with open(file_path, "r") as f:
+            return pd.json_normalize(json5.load(f,), sep="_").to_dict(
+                orient="records"
+            )[0]
+    
+    @staticmethod
     def _calculate_traffic_metrics(
         trip_info_file: os.PathLike,
         output_file_path: os.PathLike,

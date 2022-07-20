@@ -90,7 +90,8 @@ def create_veh_distributions(
             vary_lines.append(f"{var.variable_name};{sumo_dist_string}")
 
         for line in vary_lines + type_group.get("distribution_parameters", "").splitlines():
-            dist.add_attribute(_dist_line_parser(line))
+            if "#" not in line:
+                dist.add_attribute(_dist_line_parser(line))
 
         for i in range(dist.size):
             veh_type_node = xml_dom.createElement("vType")

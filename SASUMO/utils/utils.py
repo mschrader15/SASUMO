@@ -131,6 +131,8 @@ def regex_energy_total(
             # this means that the time high does not exist in the file so we count all the way to the end
             time_high_i = -1
 
+        #TODO: SUM the number of vehicles in the time range.
+
         for match in re.finditer(pattern, data[time_low_i:time_high_i]):
             if (
                (not x_filter or (x_filter and x_filter(float(match[3]))))

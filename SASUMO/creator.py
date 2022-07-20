@@ -3,6 +3,7 @@ import os
 import pickle
 import sys
 import random
+from importlib_metadata import distribution
 import json5 as json
 from typing import List, Tuple
 
@@ -89,11 +90,20 @@ class SASUMO:
         self,
     ) -> np.array:
 
-        sample = saltelli.sample(
-            self._problem,
-            self._settings.SensitivityAnalysis.N,
-            calc_second_order=self._settings.SensitivityAnalysis.calc_second_order,
-        )
+        if self._settings.SensitivityAnalysis.get("mode", "") == "correlated":
+            from SALib.sample import sobol_corr
+
+            sample = sobol_corr.sample(
+                self._problem,
+                self._settings.SensitivityAnalysis.N,
+            )
+
+        else:
+            sample = saltelli.sample(
+                self._problem,
+                self._settings.SensitivityAnalysis.N,
+                calc_second_order=self._settings.SensitivityAnalysis.calc_second_order,
+            )
 
         print(f"Running {len(sample)} simulations")
 
@@ -111,13 +121,33 @@ class SASUMO:
         return {
             "num_vars": len(self._settings.SensitivityAnalysis.Variables),
             "names": [
-                var.variable_name
-                for var in self._settings.SensitivityAnalysis.Variables.values()
+                name
+                for name, var in self._settings.SensitivityAnalysis.Variables.items()
             ],
             "bounds": [
                 self._compose_bounds(var)
                 for var in self._settings.SensitivityAnalysis.Variables.values()
             ],
+            **(
+                {
+                    "distrs": [
+                        var.distr
+                        for _, var in self._settings.SensitivityAnalysis.Variables.items()
+                    ]
+                }
+                if self._settings.SensitivityAnalysis.get("mode", "") == "correlated"
+                else {}
+            ),
+            **(
+                {
+                    "corr": [
+                        var.corr
+                        for _, var in self._settings.SensitivityAnalysis.Variables.items()
+                    ]
+                }
+                if self._settings.SensitivityAnalysis.get("mode", "") == "correlated"
+                else {}
+            ),
         }
 
     def _compose_bounds(self, variable_obj: object) -> Tuple[float, float]:
@@ -224,8 +254,16 @@ class SASUMO:
             np.array(results),
         )
 
-    def analyze(self, results) -> None:
+    def analyze(self, results) -> dict:
+        if self._settings.SensitivityAnalysis.get("mode", "") == "correlated":
+            from SALib.analyze import sobol_corr
 
+            return sobol_corr.analyze(
+                self._problem,
+                np.array([r[0] for r in results]),
+                self._settings.SensitivityAnalysis.N
+            )
+        
         return sobol.analyze(
             self._problem, np.array([r[0] for r in results]), print_to_console=True
         )
@@ -250,9 +288,9 @@ def run(debug, smoke_test, finish_existing, settings_file):
 
     if debug:
         if "Remote" in s._settings.get("ManagerFunction").module:
-            s._settings.get("ManagerFunction").module = s._settings.get("ManagerFunction").module.replace(
-                "Remote", ""
-            )
+            s._settings.get("ManagerFunction").module = s._settings.get(
+                "ManagerFunction"
+            ).module.replace("Remote", "")
             s.main_fn_helper(s._settings.get("ManagerFunction").module)
         s.debug_main()
     else:
