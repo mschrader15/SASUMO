@@ -12,7 +12,6 @@ from SASUMO.functions.function import BaseSUMOFunc
 
 # from ..functions import
 from SASUMO.utils import beefy_import
-from traitlets import default
 
 
 class ReplaySASUMO:
