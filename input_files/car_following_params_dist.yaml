@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours
+  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours+Refined
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -224,7 +224,7 @@ SensitivityAnalysis:
         params:
           width:  ${SensitivityAnalysis.Variables.impatienceDev.val}
           lb: 0
-          ub: .8
+          ub: .5
     
     impatienceDev:
       variable_name: impatienceDev
@@ -265,7 +265,7 @@ SensitivityAnalysis:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
-          lb: 0.9
+          lb: 0.8
           ub: 2
     
 
