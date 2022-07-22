@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours
+  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours+Refined
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -42,7 +42,7 @@ SensitivityAnalysis:
         params:
           width: ${SensitivityAnalysis.Variables.TauDev.val}
           lb: 0.2  # can't be lower than action step
-          ub: 3 # any higher and it leads to weird behavior
+          ub: 2.5 # any higher and it leads to weird behavior
 
     TauDev:
       variable_name: tau_dev
@@ -106,7 +106,7 @@ SensitivityAnalysis:
         params:
           width: ${SensitivityAnalysis.Variables.DecelDev.val}
           lb: 1
-          ub: 8
+          ub: 6  # This is because the 
     
     DecelDev:
       variable_name: decel_dev
@@ -194,26 +194,26 @@ SensitivityAnalysis:
           ub: 2
 
     
-    jmTimegapMinor:
-      variable_name: jmTimegapMinor
-      group: car_following_parameter
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
-          lb: 1
-          ub: 6
+    # jmTimegapMinor:
+    #   variable_name: jmTimegapMinor
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
+    #       lb: 1
+    #       ub: 6
     
-    jmTimegapMinorDev:
-      variable_name: jmTimegapMinorDev
-      group: ""
-      val: ???
-      distribution:
-        type: uniform
-        params:
-          lb: 2
-          ub: 4
+    # jmTimegapMinorDev:
+    #   variable_name: jmTimegapMinorDev
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 2
+    #       ub: 4
     
     impatience:
       variable_name: impatience
@@ -224,7 +224,7 @@ SensitivityAnalysis:
         params:
           width:  ${SensitivityAnalysis.Variables.impatienceDev.val}
           lb: 0
-          ub: .8
+          ub: .5
     
     impatienceDev:
       variable_name: impatienceDev
@@ -265,8 +265,8 @@ SensitivityAnalysis:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
-          lb: 0.1
-          ub: 3
+          lb: 0.8
+          ub: 2
     
 
     lcAssertiveDev:
@@ -277,7 +277,7 @@ SensitivityAnalysis:
         type: uniform
         params:
           lb: 0.1
-          ub: 1
+          ub: 0.2
 
     # delta:
     #   variable_name: delta
@@ -330,7 +330,7 @@ SensitivityAnalysis:
               lcCooperative; normal(1, 0.1);
               # decel; normal(2.225, 1.849); [0.1, 8]
               actionStepLength; 0.2
-              # jmTimegapMinor;uniform(3, 6)
+              jmTimegapMinor;uniform(3, 5)
               # impatience;uniform(0, 0.2)
               # lcKeepRight;uniform(0.3, 0.7)
               lcPushy;uniform(0, 0.2)
