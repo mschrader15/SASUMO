@@ -1,6 +1,6 @@
 from importlib.metadata import distribution
 import os
-from typing import Iterable, List, Tuple, Generator
+from typing import Any, Iterable, List, Tuple, Generator
 from xml.dom import minidom
 
 from sumolib.vehicletype import (
@@ -84,10 +84,15 @@ def create_veh_distributions(
         )
 
         vary_lines = []
+        devices = []
         for var in type_group.get("variable_parameters", []):
-            dist_func = create_distribution(var.distribution.type)
-            sumo_dist_string = dist_func(val=var.val, **dict(var.distribution.params))
-            vary_lines.append(f"{var.variable_name};{sumo_dist_string}")
+            # create the device handler
+            if var.get("device", False):
+                devices.append((var.get("variable_name"), var.get("device_value"), var.get("val")))
+            else:                    
+                dist_func = create_distribution(var.distribution.type)
+                sumo_dist_string = dist_func(val=var.val, **dict(var.distribution.params))
+                vary_lines.append(f"{var.variable_name};{sumo_dist_string}")
 
         for line in vary_lines + type_group.get("distribution_parameters", "").splitlines():
             if "#" not in line:
@@ -98,7 +103,26 @@ def create_veh_distributions(
             veh_type_node.setAttribute("id", dist.name + str(i))
             dist._generate_vehType(xml_dom, veh_type_node)
             vtype_dist_node.appendChild(veh_type_node)
+        
+        # apply the device handlers
+        for device in devices:
+            _apply_device_params(device[0], device[1], device[2], vtype_dist_node, xml_dom)
 
     # write the file to XML
     write_additional_minidom(xml_dom, vtype_dist_node, output_file_name)
+
+def _apply_device_params(param_name: str, param_value: Any, prob: float, vtype_dist_node: minidom.Element, xml_dom: minidom.Document) -> str:
+    """
+    Applies the distribution parameters to the vehicle type
+    """
+    # doing this because it has already been seeded.
+    from sumolib.vehicletype import random
+
+    for node in vtype_dist_node.childNodes:
+        if random.random() <= prob:
+            param_node = xml_dom.createElement("param")
+            param_node.setAttribute("key", param_name)
+            value = str(param_value if isinstance(param_value, float) else eval(param_value))
+            param_node.setAttribute("value", value)
+            node.appendChild(param_node)
 
