@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours+Refined
+  name: FleetCompositionFinalV0
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -32,7 +32,50 @@ SensitivityAnalysis:
         params:
           lb: 1
           ub: 1000000
+    
+    fleetComposition:
+      variable_name: fleet_composition
+      group: ""
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          lb: 0
+          ub: .3
 
+    truckSpeedFactor:
+      variable_name: speedFactor
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: uniform
+        params:
+          width: .2
+          lb: 0.7
+          ub: 1.1
+    
+    truckAccel:
+      variable_name: accel
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.AccelDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.AccelDev.val}
+          lb: 1
+          ub: 2.5
+    
+    truckTau:
+      variable_name: tau
+      group: truck_car_following_parameter
+      val: ???
+      distribution:
+        type: ${SensitivityAnalysis.Variables.TauDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.TauDev.val}
+          lb: 0.2
+          ub: 2.5
+    
     Tau:
       variable_name: tau
       group: car_following_parameter
@@ -193,28 +236,6 @@ SensitivityAnalysis:
           lb: 0
           ub: 2
 
-    
-    # jmTimegapMinor:
-    #   variable_name: jmTimegapMinor
-    #   group: car_following_parameter
-    #   val: ???
-    #   distribution:
-    #     type: uniform
-    #     params:
-    #       width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
-    #       lb: 1
-    #       ub: 6
-    
-    # jmTimegapMinorDev:
-    #   variable_name: jmTimegapMinorDev
-    #   group: ""
-    #   val: ???
-    #   distribution:
-    #     type: uniform
-    #     params:
-    #       lb: 2
-    #       ub: 4
-    
     impatience:
       variable_name: impatience
       group: car_following_parameter
@@ -268,7 +289,6 @@ SensitivityAnalysis:
           lb: 0.8
           ub: 2
     
-
     lcAssertiveDev:
       variable_name: lcAssertiveDev
       group: ""
@@ -278,39 +298,6 @@ SensitivityAnalysis:
         params:
           lb: 0.1
           ub: 0.2
-
-    # delta:
-    #   variable_name: delta
-    #   group: car_following_parameter
-    #   val: ???
-    #   distribution:
-    #     type: uniform
-    #     params:
-    #       width: ${SensitivityAnalysis.Variables.deltaDev.val}
-    #       lb: 1
-    #       ub: 40
-    
-    # deltaDev:
-    #   variable_name: delta
-    #   group: ""
-    #   val: ???
-    #   distribution:
-    #     type: uniform
-    #     params:
-    #       lb: 7.248  # one std from https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf 
-    #       ub: 14.496  # two std https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf
-
-    # Doesn't matter. See Random_Seed+Deterministic_Route+Time_Gap+Impatience+All_Dev/07.10.2022_11.50.10
-    # impatience:
-    #   variable_name: impatience
-    #   group: car_following_parameter
-    #   val: ???
-    #   distribution:
-    #     type: uniform
-    #     params:
-    #       width: 0.1
-    #       lb: 0
-    #       ub: 0.5
 
 
   Generators:
@@ -334,6 +321,20 @@ SensitivityAnalysis:
               # impatience;uniform(0, 0.2)
               # lcKeepRight;uniform(0.3, 0.7)
               lcPushy;uniform(0, 0.2)
+          - variable_parameters: ${group:truck_car_following_parameter}
+            fleet_composition: ${SensitivityAnalysis.Variables.fleetComposition.val}
+            vehicle_name: truck
+            distribution_parameters: |
+              decel; normal(2.225, 1.849); [1, 8]
+              minGap; normal(4.629724, 0.489382); [1.745753, 6.362827] 
+              carFollowModel;IDM
+              length;uniform(19,23)
+              vClass;trailer
+              emissionClass;PHEMlight/HDV_TT_D_EU6
+              actionStepLength;0.2
+              jmTimegapMinor;6.5
+              lcPushy;uniform(0, 0.2)
+              # lcKeepRight;uniform(0, 1)
 
         kwargs:
           output_file_name: ${FileManager.veh_distribution_file}

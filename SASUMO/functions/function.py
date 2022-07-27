@@ -16,7 +16,6 @@ from SASUMO.params import ProcessConfig
 from SASUMO.utils import beefy_import
 from SASUMO.params.configuration import ReplayProcessConf
 from SASUMO.utils.utils import create_folder
-from SASUMO.utils.sumo_dist_builder import create_distribution
 from SASUMO.utils.constants import TEMP_PATTERN, SUMO_HOME
 
 
@@ -110,6 +109,26 @@ class BaseSUMOFunc:
         """
 
         create_veh_distributions(
+            args,
+            output_file_name=output_file_name,
+            distribution_size=distribution_size,
+            distribution_name=distribution_name,
+            seed=self._params.Metadata.random_seed,
+        )
+
+    def create_corr_veh_distribution(
+        self,
+        *args: List[DictConfig],
+        output_file_name: os.PathLike,
+        distribution_size: int,
+        distribution_name: str,
+    ) -> None:
+        """
+        Creating the text input file
+        """
+        from SASUMO.utils.fleet_composition import correlated_sumo_dist_builder
+
+        correlated_sumo_dist_builder(
             args,
             output_file_name=output_file_name,
             distribution_size=distribution_size,
