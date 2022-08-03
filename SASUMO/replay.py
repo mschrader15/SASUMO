@@ -88,8 +88,11 @@ class ReplaySASUMO:
     def _get_fn(
         self,
     ) -> BaseSUMOFunc:
-        return beefy_import(self._s.get("ManagerFunction").module.replace("Remote", ""))
-
+        try:
+            return beefy_import(self._s.get("ManagerFunction").module.replace("Remote", ""))
+        except AttributeError:
+            self._s.VARIABLE_HEADING = "ParameterSweep"
+            return beefy_import(self._s.get("ManagerFunction").module.replace("Remote", ""))
     def _cp_sumo_files(
         self,
     ) -> None:
