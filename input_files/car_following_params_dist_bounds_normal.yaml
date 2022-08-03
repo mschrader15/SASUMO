@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: CarFollowingUniformDistBoundsV0.4
+  name: CarFollowingNormalSaltelli
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -10,9 +10,9 @@ Metadata:
   mode: SensitivityAnalysis
 
 SensitivityAnalysis:
-  parallel_trials: 64
+  parallel_trials: 63
   # N from N * (2D + 2) samples, should be a power of 2
-  "N": 1024
+  "N": 256
   calc_second_order: True
   preprocessing: None
   ManagerFunction:
@@ -37,17 +37,17 @@ SensitivityAnalysis:
       variable_name: tau
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
+      sobol_dist: norm
       sobol_dist_params:
-        lb: 0.71  # lb + largest Stddev of the distribution
-        ub: 2
+        mean: 1.266
+        std: 1.014
       sumo_dist:
-        type: ${SensitivityAnalysis.Variables.TauDist.val}
-        # type: normal
+        # type: ${SensitivityAnalysis.Variables.TauDist.val}
+        type: normal
         params:
           width: ${SensitivityAnalysis.Variables.TauDev.val}
           lb: 0.2  # can't be lower than action step
-          ub: 2.5 # any higher and it leads to weird behavior
+          ub: 3 # any higher and it leads to weird behavior
 
     TauDev:
       variable_name: tau_dev
@@ -56,30 +56,30 @@ SensitivityAnalysis:
       sumo_dist:
         type: uniform
         params:
-          lb: 0.334 # Should I go smaller or larger? 
-          ub: 0.507
+          lb: 1.014  # this is divided by 2 for normal and lognormal dists
+          ub: 2.028
     
-    TauDist:
-      variable_name: tau_dist
-      group: ""
-      val: ???
-      sumo_dist:
-        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
-        type: uniform
-        params:
-          lb: 0
-          ub: 3
+    # TauDist:
+    #   variable_name: tau_dist
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+    #     type: uniform
+    #     params:
+    #       lb: 0
+    #       ub: 3
 
     Accel:
       variable_name: accel
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
+      sobol_dist: norm
       sobol_dist_params:
-        lb: 0.8  # lb + largest Stddev of the distribution, except largest std dev is big in observed data, so + 2x smallest here
-        ub: 2.6 
+        mean: 1.406
+        std: 1
       sumo_dist:
-        type: ${SensitivityAnalysis.Variables.AccelDist.val}
+        type: lognormal
         params:
           width: ${SensitivityAnalysis.Variables.AccelDev.val}
           lb: 0.2
@@ -92,30 +92,30 @@ SensitivityAnalysis:
       sumo_dist:
         type: uniform
         params:
-          lb: 0.1012
-          ub: 0.5
+          lb: 0.555
+          ub: 6.8576
 
-    AccelDist:
-      variable_name: accel_dist
-      group: ""
-      val: ???
-      sumo_dist:
-        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
-        type: uniform
-        params:
-          lb: 0
-          ub: 3
+    # AccelDist:
+    #   variable_name: accel_dist
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+    #     type: uniform
+    #     params:
+    #       lb: 0
+    #       ub: 3
 
     Decel:
       variable_name: decel
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
+      sobol_dist: norm
       sobol_dist_params:
-        lb: 0.8 
-        ub: 4.5  # this is SUMO's default
+        mean: 2.225
+        std: 1.0125
       sumo_dist:
-        type: ${SensitivityAnalysis.Variables.DecelDist.val}
+        type: lognormal
         params:
           width: ${SensitivityAnalysis.Variables.DecelDev.val}
           lb: 0.2
@@ -128,30 +128,30 @@ SensitivityAnalysis:
       sumo_dist:
         type: uniform
         params:
-          lb: 0.725
-          ub: 1.849
+          lb: 1.5766
+          ub: 3.698
     
-    DecelDist:
-      variable_name: decel_dist
-      group: ""
-      val: ???
-      sumo_dist:
-        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
-        type: uniform
-        params:
-          lb: 0
-          ub: 3
+    # DecelDist:
+    #   variable_name: decel_dist
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+    #     type: uniform
+    #     params:
+    #       lb: 0
+    #       ub: 3
 
     minGap:
       variable_name: minGap
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
+      sobol_dist: norm
       sobol_dist_params:
-        lb: 1.5
-        ub: 3.5
+        mean: 2.172
+        std: 2.152
       sumo_dist:
-        type: ${SensitivityAnalysis.Variables.minGapDist.val}
+        type: lognormal
         params:
           width: ${SensitivityAnalysis.Variables.minGapDev.val}
           lb: 0.1
@@ -162,36 +162,36 @@ SensitivityAnalysis:
       group: ""
       val: ???
       sumo_dist:
-        type: unif
-        params:
-          lb: 0.96
-          ub: 1.2
-
-    minGapDist:
-      variable_name: minGapDist
-      group: ""
-      val: ???
-      sumo_dist:
-        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
         type: uniform
         params:
-          lb: 0
-          ub: 3
+          lb: 2.304
+          ub: 4.608
+
+    # minGapDist:
+    #   variable_name: minGap_dist
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+    #     type: uniform
+    #     params:
+    #       lb: 0
+    #       ub: 3
     
     speedFactor:
       variable_name: speedFactor
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
+      sobol_dist: norm
       sobol_dist_params:
-        lb: 0.9 # could also do the  
-        ub: 1.1  # 1.07 in https://www.sciencedirect.com/science/article/pii/S0001457510003908, # 1.03 from 55 - 1.9 - 0 - 0 -( 7 * 0.25), aka HCM, 1.1 from our data
+        mean: 1.15
+        std: 0.2
       sumo_dist:
-        type: ${SensitivityAnalysis.Variables.speedFactorDist.val}
+        type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.speedDeviation.val}
-          lb: 0.7   
-          ub: 1.3 
+          lb: 0.8
+          ub: 1.3
     
     speedDeviation:
       variable_name: speedDeviation
@@ -200,105 +200,105 @@ SensitivityAnalysis:
       sumo_dist:
         type: uniform
         params:
-          lb: 0.1 # 0.1 in our data  0.17 in https://www.sciencedirect.com/science/article/pii/S0001457510003908, 0.28 in https://doi.org/10.1016/j.sbspro.2011.04.452
-          ub: 0.28
-    
-    speedFactorDist:
-      variable_name: speedFactor_dist
-      group: ""
-      val: ???
-      sumo_dist:
-        data_transform: "['uniform', 'normal'][math.floor(val)]"
-        type: uniform
-        params:
-          lb: 0
-          ub: 2
-
-    
-    jmTimegapMinor:
-      variable_name: jmTimegapMinor
-      group: car_following_parameter
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
-          lb: 1
-          ub: 6
-    
-    jmTimegapMinorDev:
-      variable_name: jmTimegapMinorDev
-      group: ""
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          lb: 2
-          ub: 4
-    
-    impatience:
-      variable_name: impatience
-      group: car_following_parameter
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          width:  ${SensitivityAnalysis.Variables.impatienceDev.val}
-          lb: 0
-          ub: .5
-    
-    impatienceDev:
-      variable_name: impatienceDev
-      group: 
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          lb: .1
-          ub: .3
-    
-    lcKeepRight:
-      variable_name: lcKeepRight
-      group: car_following_parameter
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          width: ${SensitivityAnalysis.Variables.lcKeepRightDev.val}
-          lb: 0.1
-          ub: 1.2
-    
-    lcKeepRightDev:
-      variable_name: lcKeepRightDev
-      group: ""
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          lb: 0.1
-          ub: 1
-    
-    lcAssertive:
-      variable_name: lcAssertive
-      group: car_following_parameter
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
-          lb: 0.8
-          ub: 2
-    
-
-    lcAssertiveDev:
-      variable_name: lcAssertiveDev
-      group: ""
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          lb: 0.1
+          lb: 0.05
           ub: 0.2
+    
+    # speedFactorDist:
+    #   variable_name: speedFactor_dist
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     data_transform: "['uniform', 'normal'][math.floor(val)]"
+    #     type: uniform
+    #     params:
+    #       lb: 0
+    #       ub: 2
+
+    
+    # jmTimegapMinor:
+    #   variable_name: jmTimegapMinor
+    #   group: car_following_parameter
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
+    #       lb: 1
+    #       ub: 6
+    
+    # jmTimegapMinorDev:
+    #   variable_name: jmTimegapMinorDev
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       lb: 2
+    #       ub: 4
+    
+    # impatience:
+    #   variable_name: impatience
+    #   group: car_following_parameter
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width:  ${SensitivityAnalysis.Variables.impatienceDev.val}
+    #       lb: 0
+    #       ub: .5
+    
+    # impatienceDev:
+    #   variable_name: impatienceDev
+    #   group: 
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       lb: .1
+    #       ub: .3
+    
+    # lcKeepRight:
+    #   variable_name: lcKeepRight
+    #   group: car_following_parameter
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.lcKeepRightDev.val}
+    #       lb: 0.1
+    #       ub: 1.2
+    
+    # lcKeepRightDev:
+    #   variable_name: lcKeepRightDev
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       lb: 0.1
+    #       ub: 1
+    
+    # lcAssertive:
+    #   variable_name: lcAssertive
+    #   group: car_following_parameter
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
+    #       lb: 0.8
+    #       ub: 2
+    
+
+    # lcAssertiveDev:
+    #   variable_name: lcAssertiveDev
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       lb: 0.1
+    #       ub: 0.2
 
     # delta:
     #   variable_name: delta
@@ -321,6 +321,18 @@ SensitivityAnalysis:
     #       lb: 7.248  # one std from https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf 
     #       ub: 14.496  # two std https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf
 
+    # Doesn't matter. See Random_Seed+Deterministic_Route+Time_Gap+Impatience+All_Dev/07.10.2022_11.50.10
+    # impatience:
+    #   variable_name: impatience
+    #   group: car_following_parameter
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width: 0.1
+    #       lb: 0
+    #       ub: 0.5
+
 
   Generators:
     - function: create_veh_distribution
@@ -338,11 +350,11 @@ SensitivityAnalysis:
               jmDriveAfterYellowTime; uniform(0, 2)
               lcCooperative; normal(1, 0.2);
               # decel; normal(2.225, 1.849); [0.1, 8]
-              # lcPushy;uniform(0, 0.2)
+              lcPushy;uniform(0, 0.2)
               actionStepLength;0.2
-              # jmTimegapMinor;uniform(3, 6)
-              # impatience;uniform(0, 0.2)
-              # lcKeepRight;uniform(0.3, 0.7)
+              jmTimegapMinor;uniform(3, 6)
+              impatience;uniform(0, 0.2)
+              lcKeepRight;uniform(0.3, 0.7)
 
         kwargs:
           output_file_name: ${FileManager.veh_distribution_file}

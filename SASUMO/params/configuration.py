@@ -176,13 +176,18 @@ class ProcessSASUMOConf:
         for var, p_var in zip(
             self._base_conf.get(self.VARIABLE_HEADING).Variables.values(), process_var
         ):
+            dist = var.get("sumo_dist", var.get("distribution", {}))
+            
+            # cap the value at the lower and upper bound
+            p_var = min(max(dist.params.lb, p_var), dist.params.ub)
+
             # default is float
-            mode = var.distribution.get("data_type", "float")
+            mode = dist.get("data_type", "float")
             var.val = eval(f"{mode}({p_var})")
 
-            if var.distribution.get("data_transform", ""):
+            if dist.get("data_transform", ""):
                 var.val = eval(
-                    var.distribution.data_transform.replace("val", "var.val")
+                    dist.data_transform.replace("val", "var.val")
                 )
 
     def to_yaml(self, file_path: str) -> None:

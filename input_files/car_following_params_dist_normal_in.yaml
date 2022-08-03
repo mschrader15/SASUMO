@@ -1,6 +1,6 @@
 Metadata:
   # The name will also show up as the main folder for simulation
-  name: CarFollowingUniformDistBoundsV0.4
+  name: Random_Seed+RegenerateDeterministicRoute+Time_Gap+All_Dev+DistSample+2_Hours+Refined
   author: mcschrader@crimson.ua.edu
   output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
   run_id: ???
@@ -10,7 +10,7 @@ Metadata:
   mode: SensitivityAnalysis
 
 SensitivityAnalysis:
-  parallel_trials: 64
+  parallel_trials: 63
   # N from N * (2D + 2) samples, should be a power of 2
   "N": 1024
   calc_second_order: True
@@ -26,7 +26,7 @@ SensitivityAnalysis:
       variable_name: random_seed
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         data_type: int
         params:
@@ -37,13 +37,8 @@ SensitivityAnalysis:
       variable_name: tau
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
-      sobol_dist_params:
-        lb: 0.71  # lb + largest Stddev of the distribution
-        ub: 2
-      sumo_dist:
+      distribution:
         type: ${SensitivityAnalysis.Variables.TauDist.val}
-        # type: normal
         params:
           width: ${SensitivityAnalysis.Variables.TauDev.val}
           lb: 0.2  # can't be lower than action step
@@ -53,17 +48,17 @@ SensitivityAnalysis:
       variable_name: tau_dev
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
-          lb: 0.334 # Should I go smaller or larger? 
-          ub: 0.507
+          lb: 1.014
+          ub: 2.028
     
     TauDist:
       variable_name: tau_dist
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
         type: uniform
         params:
@@ -74,32 +69,28 @@ SensitivityAnalysis:
       variable_name: accel
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
-      sobol_dist_params:
-        lb: 0.8  # lb + largest Stddev of the distribution, except largest std dev is big in observed data, so + 2x smallest here
-        ub: 2.6 
-      sumo_dist:
+      distribution:
         type: ${SensitivityAnalysis.Variables.AccelDist.val}
         params:
           width: ${SensitivityAnalysis.Variables.AccelDev.val}
-          lb: 0.2
+          lb: 1
           ub: 6
     
     AccelDev:
       variable_name: accel_dev
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
-          lb: 0.1012
-          ub: 0.5
+          lb: 0.555
+          ub: 6.8576
 
     AccelDist:
       variable_name: accel_dist
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
         type: uniform
         params:
@@ -110,32 +101,28 @@ SensitivityAnalysis:
       variable_name: decel
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
-      sobol_dist_params:
-        lb: 0.8 
-        ub: 4.5  # this is SUMO's default
-      sumo_dist:
+      distribution:
         type: ${SensitivityAnalysis.Variables.DecelDist.val}
         params:
           width: ${SensitivityAnalysis.Variables.DecelDev.val}
-          lb: 0.2
-          ub: 8  # This is because the 
+          lb: 1
+          ub: 6  # This is because the 
     
     DecelDev:
       variable_name: decel_dev
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
-          lb: 0.725
-          ub: 1.849
+          lb: 1.5766
+          ub: 3.1532
     
     DecelDist:
       variable_name: decel_dist
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
         type: uniform
         params:
@@ -146,11 +133,7 @@ SensitivityAnalysis:
       variable_name: minGap
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
-      sobol_dist_params:
-        lb: 1.5
-        ub: 3.5
-      sumo_dist:
+      distribution:
         type: ${SensitivityAnalysis.Variables.minGapDist.val}
         params:
           width: ${SensitivityAnalysis.Variables.minGapDev.val}
@@ -161,17 +144,17 @@ SensitivityAnalysis:
       variable_name: minGapDev
       group: ""
       val: ???
-      sumo_dist:
-        type: unif
+      distribution:
+        type: uniform
         params:
-          lb: 0.96
-          ub: 1.2
+          lb: 2.304
+          ub: 4.608
 
     minGapDist:
-      variable_name: minGapDist
+      variable_name: minGap_dist
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
         type: uniform
         params:
@@ -182,32 +165,28 @@ SensitivityAnalysis:
       variable_name: speedFactor
       group: car_following_parameter
       val: ???
-      sobol_dist: unif
-      sobol_dist_params:
-        lb: 0.9 # could also do the  
-        ub: 1.1  # 1.07 in https://www.sciencedirect.com/science/article/pii/S0001457510003908, # 1.03 from 55 - 1.9 - 0 - 0 -( 7 * 0.25), aka HCM, 1.1 from our data
-      sumo_dist:
+      distribution:
         type: ${SensitivityAnalysis.Variables.speedFactorDist.val}
         params:
           width: ${SensitivityAnalysis.Variables.speedDeviation.val}
-          lb: 0.7   
-          ub: 1.3 
+          lb: 0.8
+          ub: 1.3
     
     speedDeviation:
       variable_name: speedDeviation
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
-          lb: 0.1 # 0.1 in our data  0.17 in https://www.sciencedirect.com/science/article/pii/S0001457510003908, 0.28 in https://doi.org/10.1016/j.sbspro.2011.04.452
-          ub: 0.28
+          lb: 0.05
+          ub: 0.3
     
     speedFactorDist:
       variable_name: speedFactor_dist
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         data_transform: "['uniform', 'normal'][math.floor(val)]"
         type: uniform
         params:
@@ -215,32 +194,32 @@ SensitivityAnalysis:
           ub: 2
 
     
-    jmTimegapMinor:
-      variable_name: jmTimegapMinor
-      group: car_following_parameter
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
-          lb: 1
-          ub: 6
+    # jmTimegapMinor:
+    #   variable_name: jmTimegapMinor
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
+    #       lb: 1
+    #       ub: 6
     
-    jmTimegapMinorDev:
-      variable_name: jmTimegapMinorDev
-      group: ""
-      val: ???
-      sumo_dist:
-        type: uniform
-        params:
-          lb: 2
-          ub: 4
+    # jmTimegapMinorDev:
+    #   variable_name: jmTimegapMinorDev
+    #   group: ""
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       lb: 2
+    #       ub: 4
     
     impatience:
       variable_name: impatience
       group: car_following_parameter
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
           width:  ${SensitivityAnalysis.Variables.impatienceDev.val}
@@ -251,7 +230,7 @@ SensitivityAnalysis:
       variable_name: impatienceDev
       group: 
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
           lb: .1
@@ -261,7 +240,7 @@ SensitivityAnalysis:
       variable_name: lcKeepRight
       group: car_following_parameter
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.lcKeepRightDev.val}
@@ -272,7 +251,7 @@ SensitivityAnalysis:
       variable_name: lcKeepRightDev
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
           lb: 0.1
@@ -282,7 +261,7 @@ SensitivityAnalysis:
       variable_name: lcAssertive
       group: car_following_parameter
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
           width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
@@ -294,7 +273,7 @@ SensitivityAnalysis:
       variable_name: lcAssertiveDev
       group: ""
       val: ???
-      sumo_dist:
+      distribution:
         type: uniform
         params:
           lb: 0.1
@@ -304,7 +283,7 @@ SensitivityAnalysis:
     #   variable_name: delta
     #   group: car_following_parameter
     #   val: ???
-    #   sumo_dist:
+    #   distribution:
     #     type: uniform
     #     params:
     #       width: ${SensitivityAnalysis.Variables.deltaDev.val}
@@ -315,11 +294,23 @@ SensitivityAnalysis:
     #   variable_name: delta
     #   group: ""
     #   val: ???
-    #   sumo_dist:
+    #   distribution:
     #     type: uniform
     #     params:
     #       lb: 7.248  # one std from https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf 
     #       ub: 14.496  # two std https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf
+
+    # Doesn't matter. See Random_Seed+Deterministic_Route+Time_Gap+Impatience+All_Dev/07.10.2022_11.50.10
+    # impatience:
+    #   variable_name: impatience
+    #   group: car_following_parameter
+    #   val: ???
+    #   distribution:
+    #     type: uniform
+    #     params:
+    #       width: 0.1
+    #       lb: 0
+    #       ub: 0.5
 
 
   Generators:
@@ -338,15 +329,15 @@ SensitivityAnalysis:
               jmDriveAfterYellowTime; uniform(0, 2)
               lcCooperative; normal(1, 0.2);
               # decel; normal(2.225, 1.849); [0.1, 8]
-              # lcPushy;uniform(0, 0.2)
-              actionStepLength;0.2
-              # jmTimegapMinor;uniform(3, 6)
+              actionStepLength; 0.2
+              jmTimegapMinor;uniform(3, 5)
               # impatience;uniform(0, 0.2)
               # lcKeepRight;uniform(0.3, 0.7)
+              lcPushy;uniform(0, 0.2)
 
         kwargs:
           output_file_name: ${FileManager.veh_distribution_file}
-          distribution_size: 10000
+          distribution_size: 1000
           distribution_name: vehDist
 
   Output:

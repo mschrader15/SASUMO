@@ -142,22 +142,26 @@ class SimulationMetrics:
                 "travel_time": {
                     "total": df.loc[filt, "duration"].sum(),
                     "average": df.loc[filt, "duration"].mean(),
+                    "median": df.loc[filt, "duration"].median(),
                     "quantile_95": df.loc[filt, "duration"].quantile(0.95),
                 },
                 "delay": {
                     "total": df.loc[filt, "timeLoss"].sum(),
                     "average": df.loc[filt, "timeLoss"].mean(),
+                    "median": df.loc[filt, "timeLoss"].median(),
                     "quantile_95": df.loc[filt, "timeLoss"].quantile(0.95),
                 },
                 "waiting_time": {
                     "total": df.loc[filt, "waitingTime"].sum(),
                     "average": df.loc[filt, "waitingTime"].mean(),
+                    "median": df.loc[filt, "waitingTime"].median(),
                     "quantile_95": df.loc[filt, "waitingTime"].quantile(0.95),
                     "avg_num_stops": df.loc[filt, "waitingCount"].mean(),
                 },
                 "fuel_energy": {
                     "total": df.loc[filt, "fuel_MJ"].sum(),
                     "average": df.loc[filt, "fuel_MJ"].mean(),
+                    "median": df.loc[filt, "fuel_MJ"].median(),
                     "quantile_95": df.loc[filt, "fuel_MJ"].quantile(0.95),
                 },
                 "speed_mps": {
@@ -170,6 +174,9 @@ class SimulationMetrics:
                     "quantile_95": (
                         df.loc[filt, "routeLength"] / df.loc[filt, "duration"]
                     ).quantile(0.95),
+                    "median": (
+                        df.loc[filt, "routeLength"] / df.loc[filt, "duration"]
+                    ).median(),
                 },
             }
             for name, filt in route_filters.items()

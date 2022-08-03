@@ -28,6 +28,12 @@ SAMPLES_FILE_NAME = "SALib_Samples.txt"
 RESULTS_NAME = "output.txt"
 SOBOL_ANALYSIS = lambda x: f"sobol_analysis_{x}.csv"
 
+def _to_lognormal(mu, sd):
+    import math
+    lns = math.sqrt(math.log(sd / mu) ** 2 + 1)
+    lnmu = math.log(mu) - 0.5 * math.log((sd / mu) ** 2 + 1)
+    return lnmu, lns
+
 
 class SASUMO:
     def __init__(self, yaml_file_path: str) -> None:
@@ -128,6 +134,10 @@ class SASUMO:
                 self._compose_bounds(var)
                 for var in self._settings.SensitivityAnalysis.Variables.values()
             ],
+            "dists": [
+                var.get("sobol_dist", "unif")
+                for var in self._settings.SensitivityAnalysis.Variables.values()
+            ],
             **(
                 {
                     "distrs": [
@@ -160,10 +170,27 @@ class SASUMO:
         Returns:
             Tuple[float, float]:
         """
-        return (
-            variable_obj.distribution.params.get("lb", 0),
-            variable_obj.distribution.params.ub,
-        )
+        if variable_obj.get("sobol_dist", "unif") == "unif":
+            # return (variable_obj.distribution.get("min", 0), variable_obj.distribution.get("max", 1))
+            try:
+                return (
+                variable_obj.get("sobol_dist_params", ).get("lb", 0),
+                variable_obj.get("sobol_dist_params", ).get("ub"),
+            )
+            except (TypeError, AttributeError):
+                return (
+                    variable_obj.sumo_dist.params.get("lb", 0),
+                    variable_obj.sumo_dist.params.ub,
+                )
+        elif variable_obj.get("sobol_dist", "unif") in ["norm", ]:
+            return (
+                variable_obj.sobol_dist_params.mean,
+                variable_obj.sobol_dist_params.std,
+            )
+        elif variable_obj.get("sobol_dist", "unif") == "lognorm":
+            return _to_lognormal(variable_obj.sobol_dist_params.mean, variable_obj.sobol_dist_params.std)
+            
+        raise NotImplementedError("This distribution is not supported")
 
     def _save_problem(
         self,

@@ -96,9 +96,12 @@ def create_veh_distributions(
                     (var.get("variable_name"), var.get("device_value"), var.get("val"))
                 )
             else:
-                dist_func = create_distribution(var.distribution.type)
+                # for backwards compatibility
+                dist_params = var.get("sumo_dist", var.get("distribution", {}))
+
+                dist_func = create_distribution(dist_params.type)
                 sumo_dist_string = dist_func(
-                    val=var.val, **dict(var.distribution.params)
+                    val=var.val, **dict(dist_params.params)
                 )
                 vary_lines.append(f"{var.variable_name};{sumo_dist_string}")
 
@@ -211,9 +214,12 @@ def correlated_sumo_dist_builder(
                     (var.get("variable_name"), var.get("device_value"), var.get("val"))
                 )
             else:
-                dist_func = create_distribution(var.distribution.type)
+                # for backwards compatibility
+                dist_params = var.get("sumo_dist", var.get("distribution", {}))
+
+                dist_func = create_distribution(dist_params.type)
                 sumo_dist_string = dist_func(
-                    val=var.val, **dict(var.distribution.params)
+                    val=var.val, **dict(dist_params.params)
                 )
                 vary_lines.append(f"{var.variable_name};{sumo_dist_string}")
 

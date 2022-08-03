@@ -18,7 +18,7 @@ def _process_args(val: float, lb: float, ub: float, sd: float = None, width: flo
             l[i] = _try_eval(arg)
     # replace sd with width if sd is not provided
     if l[1] is None:
-        l[1] = l[4] / 2
+        l[1] = l[4]
     l[0] = max(min(l[0], l[3]), l[2])
     return l
 
@@ -36,7 +36,7 @@ def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> 
     for i, arg in enumerate(l):
         if type(arg) is not float:
             l[i] = _try_eval(arg)
-    l[1] /= 2
+    l[1] *= 1.96
     uniform = [max(min(mult * l[1] + l[0], l[-1]), l[2]) for mult in [-1, 1]]
     return f"uniform({uniform[0]},{uniform[1]})"
 
