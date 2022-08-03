@@ -72,7 +72,6 @@ def normal(val: float, lb: float, ub: float, sd: float = None, width: float = No
     return f"{dist}({l[0]},{l[1]});[{l[2]}, {l[3]}]"
 
 
-
 def create_distribution(type: str) -> FunctionType:
     return {
         "uniform": uniform,
