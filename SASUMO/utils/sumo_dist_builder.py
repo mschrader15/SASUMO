@@ -8,11 +8,18 @@ def _try_eval(val: str) -> float:
     except TypeError:
         return val
 
-def _process_args(val: float, lb: float, ub: float, sd: float = None, width: float = None,) -> list:
+
+def _process_args(
+    val: float,
+    lb: float,
+    ub: float,
+    sd: float = None,
+    width: float = None,
+) -> list:
     """
     This processes the arguments passed to the distribution function
     """
-    l = [val, sd, lb, ub, width] 
+    l = [val, sd, lb, ub, width]
     for i, arg in enumerate(l):
         if arg and (type(arg) is not float):
             l[i] = _try_eval(arg)
@@ -21,6 +28,7 @@ def _process_args(val: float, lb: float, ub: float, sd: float = None, width: flo
         l[1] = l[4]
     l[0] = max(min(l[0], l[3]), l[2])
     return l
+
 
 def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> str:
     """
@@ -32,39 +40,62 @@ def uniform(val: float, width: float, lb: float, ub: float, *args, **kwargs) -> 
         lb (float): min
         ub (float): max
     """
-    l = [val, width, lb, ub] 
+    l = [val, width, lb, ub]
     for i, arg in enumerate(l):
         if type(arg) is not float:
             l[i] = _try_eval(arg)
-    l[1] *= 1.96
-    uniform = [max(min(mult * l[1] + l[0], l[-1]), l[2]) for mult in [-1, 1]]
+
+    # covert the standard deviation to a lower and upper bound.
+    # reversing out the lb and ub with sigma = (ub - lb) / sqrt(12)
+    lb = l[0] - (math.sqrt(12) * l[1]) / 2
+    ub = l[0] + (math.sqrt(12) * l[1]) / 2
+
+    uniform = [max(min(lb, l[-1]), l[2]), min(max(ub, l[2]), l[3])]
     return f"uniform({uniform[0]},{uniform[1]})"
 
 
-def lognormal(val: float, lb: float, ub: float, sd: float = None, width: float = None, *args, **kwargs) -> str:
+def lognormal(
+    val: float,
+    lb: float,
+    ub: float,
+    sd: float = None,
+    width: float = None,
+    *args,
+    **kwargs,
+) -> str:
     """
     This generates a uniform distribution
 
     Args:
         val (float): the average of the lognormal distribution (mu)
-        sd (float): the standard deviation of the lognormal distribution 
+        sd (float): the standard deviation of the lognormal distribution
         lb (float): min
         ub (float): max
     """
     l = _process_args(val, lb, ub, sd, width)
 
     #  from https://stats.stackexchange.com/a/95506 cause I'm dumb...
-    lns = math.sqrt(math.log((l[1] / l[0]) ** 2 + 1)) 
+    lns = math.sqrt(math.log((l[1] / l[0]) ** 2 + 1))
     lnmu = math.log(l[0]) - 0.5 * math.log((l[1] / l[0]) ** 2 + 1)
     return f"lognormal({lnmu},{lns});[{l[2]}, {l[3]}]"
 
-def normal(val: float, lb: float, ub: float, sd: float = None, width: float = None, dist: str = "normal", *args, **kwargs) -> str:
+
+def normal(
+    val: float,
+    lb: float,
+    ub: float,
+    sd: float = None,
+    width: float = None,
+    dist: str = "normal",
+    *args,
+    **kwargs,
+) -> str:
     """
     This generates a uniform distribution
 
     Args:
         val (float): the average of the normal distribution (mu)
-        sd (float): the standard deviation of the normal distribution 
+        sd (float): the standard deviation of the normal distribution
         lb (float): min
         ub (float): max
     """
