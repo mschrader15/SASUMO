@@ -18,6 +18,8 @@ except ImportError:
     from yaml import Loader
 
 
+#TODO: This file is a friggin mess. I need to rethink this whole thing if 
+
 OmegaConf.register_new_resolver(
     "datetime",
     lambda _: datetime.now().strftime("%m.%d.%Y_%H.%M.%S"),
@@ -178,8 +180,11 @@ class ProcessSASUMOConf:
         ):
             dist = var.get("sumo_dist", var.get("distribution", {}))
             
-            # cap the value at the lower and upper bound
-            p_var = min(max(dist.params.lb, p_var), dist.params.ub)
+            # cap the value at the lower and upper bound, if they exist
+            if dist.get("params", {}).get("lb", None) is not None:
+                p_var = max(p_var, dist.params.lb) 
+            if dist.get("params", {}).get("ub", None) is not None:
+                p_var = min(p_var, dist.params.ub)
 
             # default is float
             mode = dist.get("data_type", "float")

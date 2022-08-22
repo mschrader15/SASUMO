@@ -105,18 +105,6 @@ class ParameterSweep(SASUMO):
 
         return results
 
-    def _spawn_process(self, index: int) -> ray.ObjectRef:
-
-        p = self._f.remote(
-            self._settings.generate_process(
-                process_var=self._samples[index],
-                process_id=str(index),
-                random_seed=self._generate_seed(),
-            )
-        )
-        # )
-        return p.run.remote()
-
     def debug_main(
         self,
     ) -> None:
@@ -133,11 +121,12 @@ class ParameterSweep(SASUMO):
 
     def save_results(self, sobol_analysis: list, results: list) -> None:
 
-        # save the results
-        np.savetxt(
-            os.path.join(self._settings.Metadata.output, RESULTS_NAME),
-            np.array(results),
-        )
+        pass
+        # # save the results
+        # np.savetxt(
+        #     os.path.join(self._settings.Metadata.output, RESULTS_NAME),
+        #     np.array(results),
+        # )
 
     def analyze(self, *args, **kwargs) -> None:
 
