@@ -1,33 +1,21 @@
 # from SASUMO.SASUMO.functions.function import
 import os
-import pickle
-import re
-import sys
 import random
-from importlib_metadata import distribution
-import json5 as json
+import sys
 from typing import List, Tuple
 
-import ray
 import click
+import json5 as json
 import numpy as np
-from copy import deepcopy
-
-# internal imports
-from SASUMO.params import Config
-from SASUMO.utils import beefy_import, create_folder
-
+import ray
 # external imports
 from SALib.analyze import sobol
 from SALib.sample import saltelli
 
-
-# TODO organize this somewhere
-SEED = 1e6
-PROBLEM_DESCRIPT_FILE_NAME = "SALib_Problem.json"
-SAMPLES_FILE_NAME = "SALib_Samples.txt"
-RESULTS_NAME = "output.txt"
-SOBOL_ANALYSIS = lambda x: f"sobol_analysis_{x}.csv"
+# internal imports
+from SASUMO.params import Config
+from SASUMO.utils import beefy_import, create_folder
+from SASUMO.utils import constants as c
 
 
 def _to_lognormal(mu, sd):
@@ -140,7 +128,7 @@ class SASUMO:
         # If the random seed is a part of the SA then we don't need them
         if self._settings.get("Variables", {}).get("RandomSeed", ""):
             return None
-        return random.randint(a=0, b=SEED)
+        return random.randint(a=0, b=c.SEED)
 
     def _generate_samples(
         self,
@@ -148,28 +136,28 @@ class SASUMO:
         if self._folder_exists:
             # load the samples from the file
             return np.loadtxt(
-                os.path.join(self._settings.Metadata.output, SAMPLES_FILE_NAME)
+                os.path.join(self._settings.Metadata.output, c.SAMPLES_FILE_NAME)
             )
 
-        if self._settings.SensitivityAnalysis.get("mode", "") == "correlated":
+        if self._settings.get("mode", "") == "correlated":
             from SALib.sample import sobol_corr
 
             sample = sobol_corr.sample(
                 self._problem,
-                self._settings.SensitivityAnalysis.N,
+                self._settings.get("N"),
             )
 
         else:
             sample = saltelli.sample(
                 self._problem,
-                self._settings.SensitivityAnalysis.N,
-                calc_second_order=self._settings.SensitivityAnalysis.calc_second_order,
+                int(self._settings.get("N")),
+                calc_second_order=self._settings.get("calc_second_order", False),
             )
 
         print(f"Running {len(sample)} simulations")
 
         np.savetxt(
-            os.path.join(self._settings.Metadata.output, SAMPLES_FILE_NAME),
+            os.path.join(self._settings.Metadata.output, c.SAMPLES_FILE_NAME),
             sample,
         )
 
@@ -181,34 +169,35 @@ class SASUMO:
         if self._folder_exists:
             with open(
                 os.path.join(
-                    self._settings.Metadata.output, PROBLEM_DESCRIPT_FILE_NAME
+                    self._settings.Metadata.output, c.PROBLEM_DESCRIPT_FILE_NAME
                 ),
                 "r",
             ) as f:
                 return json.load(f)
         else:
+            sa_vars = self._settings.get("Variables", {})
             return {
-                "num_vars": len(self._settings.SensitivityAnalysis.Variables),
+                "num_vars": len(sa_vars),
                 "names": [
                     name
-                    for name, var in self._settings.SensitivityAnalysis.Variables.items()
+                    for name, var in sa_vars.items()
                 ],
                 "bounds": [
                     self._compose_bounds(var)
-                    for var in self._settings.SensitivityAnalysis.Variables.values()
+                    for var in sa_vars.values()
                 ],
                 "dists": [
                     var.get("sobol_dist", "unif")
-                    for var in self._settings.SensitivityAnalysis.Variables.values()
+                    for var in sa_vars.values()
                 ],
                 **(
                     {
                         "distrs": [
                             var.distr
-                            for _, var in self._settings.SensitivityAnalysis.Variables.items()
+                            for _, var in sa_vars.items()
                         ]
                     }
-                    if self._settings.SensitivityAnalysis.get("mode", "")
+                    if self._settings.get("mode", "")
                     == "correlated"
                     else {}
                 ),
@@ -216,10 +205,10 @@ class SASUMO:
                     {
                         "corr": [
                             var.corr
-                            for _, var in self._settings.SensitivityAnalysis.Variables.items()
+                            for _, var in sa_vars.items()
                         ]
                     }
-                    if self._settings.SensitivityAnalysis.get("mode", "")
+                    if self._settings.get("mode", "")
                     == "correlated"
                     else {}
                 ),
@@ -272,7 +261,7 @@ class SASUMO:
             with open(
                 os.path.join(
                     self._settings.Metadata.output,
-                    PROBLEM_DESCRIPT_FILE_NAME,
+                    c.PROBLEM_DESCRIPT_FILE_NAME,
                 ),
                 "w",
             ) as f:
@@ -290,7 +279,7 @@ class SASUMO:
         dispatch = []
         results = []
 
-        num_parallel = min(self._settings.SensitivityAnalysis.parallel_trials, os.cpu_count(), len(self._samples))
+        num_parallel = min(self._settings.get("parallel_trials", os.cpu_count()), os.cpu_count(), len(self._samples))
 
         for i, _ in enumerate((range(2),) * 2 if smoke_test else self._samples):
 
@@ -349,12 +338,12 @@ class SASUMO:
         
             for i, result in enumerate(sobol_analysis.to_df()):
                 result.to_csv(
-                    os.path.join(self._settings.Metadata.output, SOBOL_ANALYSIS(i))
+                    os.path.join(self._settings.Metadata.output, c.SOBOL_ANALYSIS(i))
                 )
 
             # save the results
             np.savetxt(
-                os.path.join(self._settings.Metadata.output, RESULTS_NAME),
+                os.path.join(self._settings.Metadata.output, c.RESULTS_NAME),
                 np.array(results),
             )
 
@@ -392,10 +381,18 @@ class SASUMO:
 @click.option(
     "--rerun-file", type=click.Path(exists=True), help="file of iterations to re-run, deliminated by newlines"
 )
-@click.argument("settings_file")
-def run(debug, smoke_test, finish_existing, settings_file, rerun, rerun_file):
+@click.option(
+    "--parameter-sweep", is_flag=True, help="Run a parameter sweep",
+)
+@click.argument("settings_file", )
+def run(debug, smoke_test, finish_existing, settings_file, rerun, rerun_file, parameter_sweep):
 
-    s = SASUMO(settings_file, rerun, rerun_file)
+    if parameter_sweep:
+        # this prevents the circular import error
+        from SASUMO.parameter_sweep import ParameterSweep
+        s = ParameterSweep(settings_file)
+    else:
+        s = SASUMO(settings_file, rerun, rerun_file)
 
     if debug:
         if "Remote" in s._settings.get("ManagerFunction").module:

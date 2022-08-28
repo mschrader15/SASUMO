@@ -1,4 +1,5 @@
 from copy import deepcopy
+from io import StringIO
 import os
 from random import sample
 import re
@@ -211,7 +212,14 @@ class SASUMOConf:
 
     def __init__(self, file_path: str, replace_root: bool = False) -> None:
 
-        self._s = OmegaConf.load(file_path)
+        try:
+            self._s = OmegaConf.load(file_path)
+        except OSError:
+            try:
+                #HACK: this is very hacky, but it works for handling the case where the file is an input stream....
+                self._s = OmegaConf.load(StringIO(file_path))
+            except Exception as e:
+                raise e
 
         if replace_root:
             # this replaces the existing root with one relative to the files director
