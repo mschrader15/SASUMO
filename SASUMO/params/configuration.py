@@ -288,6 +288,13 @@ class SASUMOConf:
             variables = _d["SensitivityAnalysis"]["Variables"]
             return {key: variables[key]["val"] for key in variables.keys()}
         # )
+    
+    @staticmethod
+    def static_reload(file_path: str) -> None:
+        """
+        reload the configuration file
+        """
+        return OmegaConf.load(file_path)
 
 
 class ProcessParameterSweepConf(ProcessSASUMOConf):
