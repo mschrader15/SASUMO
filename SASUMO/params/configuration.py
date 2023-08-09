@@ -1,4 +1,5 @@
 from copy import deepcopy
+from io import StringIO
 import os
 from random import sample
 import re
@@ -17,6 +18,8 @@ try:
 except ImportError:
     from yaml import Loader
 
+
+#TODO: This file is a friggin mess. I need to rethink this whole thing if 
 
 OmegaConf.register_new_resolver(
     "datetime",
@@ -178,8 +181,11 @@ class ProcessSASUMOConf:
         ):
             dist = var.get("sumo_dist", var.get("distribution", {}))
             
-            # cap the value at the lower and upper bound
-            p_var = min(max(dist.params.lb, p_var), dist.params.ub)
+            # cap the value at the lower and upper bound, if they exist
+            if dist.get("params", {}).get("lb", None) is not None:
+                p_var = max(p_var, dist.params.lb) 
+            if dist.get("params", {}).get("ub", None) is not None:
+                p_var = min(p_var, dist.params.ub)
 
             # default is float
             mode = dist.get("data_type", "float")
@@ -206,7 +212,14 @@ class SASUMOConf:
 
     def __init__(self, file_path: str, replace_root: bool = False) -> None:
 
-        self._s = OmegaConf.load(file_path)
+        try:
+            self._s = OmegaConf.load(file_path)
+        except OSError:
+            try:
+                #HACK: this is very hacky, but it works for handling the case where the file is an input stream....
+                self._s = OmegaConf.load(StringIO(file_path))
+            except Exception as e:
+                raise e
 
         if replace_root:
             # this replaces the existing root with one relative to the files director

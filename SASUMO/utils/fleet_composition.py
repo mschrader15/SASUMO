@@ -1,20 +1,13 @@
-from importlib.metadata import distribution
 import os
-from typing import Any, Iterable, List, Tuple, Generator
+from typing import Any, Iterable, Tuple
 from xml.dom import minidom
 
-from sumolib.vehicletype import (
-    CreateVehTypeDistribution,
-    VehAttribute,
-    _DIST_DICT,
-)
-from sumolib.files.additional import write_additional_minidom
 from omegaconf import DictConfig
-
 #  Internal imports
 from SASUMO.utils.sumo_dist_builder import create_distribution
-from SASUMO.utils.constants import TEMP_PATTERN, SUMO_HOME
-
+from sumolib.files.additional import write_additional_minidom
+from sumolib.vehicletype import (_DIST_DICT, CreateVehTypeDistribution,
+                                 VehAttribute)
 
 DIST_ARG_HELPER = {
     "uniform": ("a", "b"),
@@ -161,9 +154,10 @@ def correlated_sumo_dist_builder(
     """
     Creates a correlated vehicle distribution file. Hardcoded for time being, cause the paper is due shortly.
     """
+    import math
+
     import numpy as np
     from numpy.random import default_rng
-    import math
 
     multivariate_normal = default_rng(seed=int(seed)).multivariate_normal
 

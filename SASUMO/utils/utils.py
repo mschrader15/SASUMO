@@ -107,8 +107,9 @@ def regex_energy_total(
     gasoline_filter = eval(gasoline_filter) if gasoline_filter else False
     x_filter = eval(x_filter) if x_filter else False
     y_filter = eval(y_filter) if y_filter else False
+    veh_ids = []
 
-    pattern = rb'eclass="\w+\/(\w+?)".+fuel="([\d\.]*)".+x="([\d\.]*)" y="([\d\.]*)"'
+    pattern = rb'id="(.*)" eclass="\w+\/(\w+?)".+fuel="([\d\.]*)".+x="([\d\.]*)" y="([\d\.]*)"'
     fc_t = 0
     with open(file_path, "r+") as f:
         data = mmap.mmap(f.fileno(), 0)
@@ -135,17 +136,20 @@ def regex_energy_total(
 
         for match in re.finditer(pattern, data[time_low_i:time_high_i]):
             if (
-               (not x_filter or (x_filter and x_filter(float(match[3]))))
-                and (not y_filter or (y_filter and y_filter(float(match[4]))))
+               (not x_filter or (x_filter and x_filter(float(match[4]))))
+                and (not y_filter or (y_filter and y_filter(float(match[5]))))
             ):
-                fc = float(match[2]) / 1e3  # this is in mg/s * 1 / 1000 g/mg
+                fc = float(match[3]) / 1e3  # this is in mg/s * 1 / 1000 g/mg
+                veh_ids.append(match[1])
                 if diesel_filter or gasoline_filter:
-                    if gasoline_filter(match[1].decode()):
+                    if gasoline_filter(match[2].decode()):
                         fc *= SUMO_GASOLINE_GRAM_TO_JOULE
-                    elif diesel_filter(match[1].decode()):
+                    elif diesel_filter(match[2].decode()):
                         fc *= SUMO_DIESEL_GRAM_TO_JOULE
                     else:
                         raise ValueError("The filter did not match any of the classes")
                 fc_t += fc
         del data
-    return fc_t * sim_step  # output is in MJ
+    
+    num_vehicles = len(set(veh_ids))
+    return fc_t * sim_step, num_vehicles  # output is in MJ

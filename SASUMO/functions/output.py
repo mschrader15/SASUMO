@@ -50,7 +50,7 @@ class TotalEmissionsHandler(_OutputHandler):
     def _y(
         self,
     ):
-        output = regex_energy_total(
+        output, num_vehicles = regex_energy_total(
             self._emissions_xml,
             self._sim_step,
             self._time_filter_lower,
@@ -62,7 +62,7 @@ class TotalEmissionsHandler(_OutputHandler):
         # divide the output number by the float probability of a vehicle having an emissions device.
         output /= self._emission_device_prob
         if self._save_output:
-            self.save_output(output)
+            self.save_output(",".join((str(output), str(num_vehicles))))
         return output
 
     def matlab_fc_handler(
