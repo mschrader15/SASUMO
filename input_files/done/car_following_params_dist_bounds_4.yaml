@@ -1,0 +1,437 @@
+Metadata:
+  # The name will also show up as the main folder for simulation
+  name: PaperFinalCarFollowingV0.2
+  author: mcschrader@crimson.ua.edu
+  output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
+  run_id: ???
+  cwd: ${.output}/${.run_id}
+  simulation_root: ${oc.env:AIRPORT_HARPER_SUMO}
+  random_seed: ${SensitivityAnalysis.Variables.RandomSeed.val}
+  mode: SensitivityAnalysis
+
+SensitivityAnalysis:
+  parallel_trials: 64
+  # N from N * (2D + 2) samples, should be a power of 2
+  "N": 4
+  calc_second_order: True
+  preprocessing: None
+  ManagerFunction:
+    module: functions.RemoteEmissionsSUMOFunc
+    # sensitivity analysis sample is inherently the first argument
+    arguments:
+
+  Variables:
+    RandomSeed:
+      variable_name: random_seed
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        data_type: int
+        params:
+          lb: 1000
+          ub: 10000000
+
+    Tau:
+      variable_name: tau
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.71 # lb + largest Stddev of the distribution
+        ub: 2
+      sumo_dist:
+        type: ${SensitivityAnalysis.Variables.TauDist.val}
+        # type: normal
+        params:
+          width: ${SensitivityAnalysis.Variables.TauDev.val}
+          lb: 0.2 # can't be lower than action step
+          ub: 2.5 # any higher and it leads to weird behavior
+
+    TauDev:
+      variable_name: tau_dev
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.334 # Should I go smaller or larger?
+          ub: 0.507
+
+    TauDist:
+      variable_name: tau_dist
+      group: ""
+      val: ???
+      sumo_dist:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    Accel:
+      variable_name: accel
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.8 # lb + largest Stddev of the distribution, except largest std dev is big in observed data, so + 2x smallest here
+        ub: 2.6
+      sumo_dist:
+        type: ${SensitivityAnalysis.Variables.AccelDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.AccelDev.val}
+          lb: 0.5
+          ub: 6
+
+    AccelDev:
+      variable_name: accel_dev
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.1012
+          ub: 0.5 
+
+    AccelDist:
+      variable_name: accel_dist
+      group: ""
+      val: ???
+      sumo_dist:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    Decel:
+      variable_name: decel
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.8
+        ub: 4.5 # this is SUMO's default
+      sumo_dist:
+        type: ${SensitivityAnalysis.Variables.DecelDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.DecelDev.val}
+          lb: 0.2
+          ub: 6 # This is because the
+
+    DecelDev:
+      variable_name: decel_dev
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.725
+          ub: 1.849
+
+    DecelDist:
+      variable_name: decel_dist
+      group: ""
+      val: ???
+      sumo_dist:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    minGap:
+      variable_name: minGap
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 1.5
+        ub: 3.5
+      sumo_dist:
+        type: ${SensitivityAnalysis.Variables.minGapDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.minGapDev.val}
+          lb: 0.1
+          ub: 5
+
+    minGapDev:
+      variable_name: minGapDev
+      group: ""
+      val: ???
+      sumo_dist:
+        type: unif
+        params:
+          lb: 0.96
+          ub: 1.2
+
+    minGapDist:
+      variable_name: minGapDist
+      group: ""
+      val: ???
+      sumo_dist:
+        data_transform: "['uniform', 'normal', 'lognormal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 3
+
+    speedFactor:
+      variable_name: speedFactor
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.9 # could also do the
+        ub: 1.15 # 1.07 in https://www.sciencedirect.com/science/article/pii/S0001457510003908, # 1.03 from 55 - 1.9 - 0 - 0 -( 7 * 0.25), aka HCM, 1.15 from our data,
+      sumo_dist:
+        type: ${SensitivityAnalysis.Variables.speedFactorDist.val}
+        params:
+          width: ${SensitivityAnalysis.Variables.speedDeviation.val}
+          lb: 0.7
+          ub: 1.3
+
+    speedDeviation:
+      variable_name: speedDeviation
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.1 # 0.1 in our data  0.17 in https://www.sciencedirect.com/science/article/pii/S0001457510003908, 0.28 in https://doi.org/10.1016/j.sbspro.2011.04.452
+          ub: 0.28
+
+    speedFactorDist:
+      variable_name: speedFactor_dist
+      group: ""
+      val: ???
+      sumo_dist:
+        data_transform: "['uniform', 'normal'][math.floor(val)]"
+        type: uniform
+        params:
+          lb: 0
+          ub: 2
+          
+    # Ignore the following variables for now
+    # jmTimegapMinor:
+    #   variable_name: jmTimegapMinor
+    #   group: car_following_parameter
+    #   val: ???
+    #   sobol_dist: unif
+    #   sobol_dist_params:
+    #     lb: 2.5
+    #     ub: 4.5
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.jmTimegapMinorDev.val}
+    #       lb: 1
+    #       ub: 6
+
+    # jmTimegapMinorDev:
+    #   variable_name: jmTimegapMinorDev
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       lb: 0.5 # because it is uniform this value is multiplied by 1.96 +- in the code to get the range
+    #       ub: 1.5
+
+    impatience:
+      variable_name: impatience
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.05
+        ub: 0.55
+      sumo_dist:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.impatienceDev.val}
+          # width: 0.1
+          lb: 0
+          ub: .6
+
+    impatienceDev:
+      variable_name: impatienceDev
+      group:
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: .05
+          ub: .25
+
+    lcStrategic:
+      variable_name: lcStrategic
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.8
+        ub: 1.2
+      sumo_dist:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.lcStrategicDev.val}
+          # width: 0.1
+          lb: 0.7
+          ub: 1.3
+
+    lcStrategicDev:
+      variable_name: lcStrategicDev
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.1
+          ub: 0.25
+
+    lcAssertive:
+      variable_name: lcAssertive
+      group: car_following_parameter
+      val: ???
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.9
+        ub: 1.9
+      sumo_dist:
+        type: uniform
+        params:
+          width: ${SensitivityAnalysis.Variables.lcAssertiveDev.val}
+          # width: 0.1
+          lb: 0.8
+          ub: 2
+
+    lcAssertiveDev:
+      variable_name: lcAssertiveDev
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.1
+          ub: 0.25
+
+    # delta:
+    #   variable_name: delta
+    #   group: car_following_parameter
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       width: ${SensitivityAnalysis.Variables.deltaDev.val}
+    #       lb: 1
+    #       ub: 40
+
+    # deltaDev:
+    #   variable_name: delta
+    #   group: ""
+    #   val: ???
+    #   sumo_dist:
+    #     type: uniform
+    #     params:
+    #       lb: 7.248  # one std from https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf
+    #       ub: 14.496  # two std https://arxiv.org/ftp/arxiv/papers/1811/1811.06395.pdf
+
+  Generators:
+    - function: create_veh_distribution
+      output_name: veh_distribution_file
+      arguments:
+        args:
+          - variable_parameters: ${group:car_following_parameter}
+            fleet_composition: 1
+            vehicle_name: car
+            distribution_parameters: |
+              length;uniform(4,6)
+              vClass;passenger
+              carFollowModel;IDM
+              emissionClass;PHEMlight/PC_G_EU4
+              lcCooperative; normal(1, 0.2);
+              actionStepLength;0.2
+              jmTimegapMinor;uniform(3, 6)
+              # impatience;uniform(0, 0.2)
+              lcKeepRight;uniform(0.3, 0.7)
+              lcOvertakeRight;uniform(0.0, 0.1)
+
+        kwargs:
+          output_file_name: ${FileManager.veh_distribution_file}
+          distribution_size: 10000
+          distribution_name: vehDist
+
+  Output:
+    module: functions.output.TotalEmissionsHandler
+    arguments:
+      kwargs:
+        emissions_xml: ${FileManager.emissions_file}
+        output_time_filter_lower: 3600
+        output_time_filter_upper: 10800
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        x_filter: "lambda x: 630 <= x <= 1900"
+        sim_step: 0.1
+        save_output: True
+
+  PostProcessing:
+    - module: tools.output_tools.USDOTCalibration
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          settings: ${Metadata.cwd}/simulation_params.json
+          historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+          save_path: ${Metadata.cwd}/calibration_results.json
+
+    - module: functions.simulation_metrics.SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          trip_info_file: ${FileManager.tripinfo_file}
+          output_file_path: ${Metadata.cwd}/simulation_metrics.json
+          warmup_time: 3600
+          route_begin_ends:
+            EB: ["834845345#1", "gneE14"]
+            WB: ["115872656#4", "115872656#13.8"]
+          diesel_filter: "lambda x: 'truck' in x"
+
+    - module: functions.per_phase_delay.E3SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          e3_output_file: ${FileManager.e3_file}
+          output_file_path: ${Metadata.cwd}/per_phase_delay.json
+          warmup_time: 3600
+
+    # - module: functions.free_flow_speed.FreeFlowSpeed
+    #   path: ${Metadata.simulation_root}
+    #   arguments:
+    #     kwargs:
+    #       radar_shape_file: ${Metadata.simulation_root}/sumo-xml/detectors/radar.polygon.add.xml
+    #       fcd_output_file: ${FileManager.fcd_file}
+    #       output_file: ${Metadata.cwd}/speed_analysis.json
+    #       start_time: "2020-02-24T05:00:00" # why do I need this?
+
+SimulationCore:
+  preprocessing: None
+  output_path: ${Metadata.cwd}
+
+  SimulationFunction:
+    module: runners.sasumo.NoTraciSimulationSASUMO
+    path: ${Metadata.simulation_root}
+    arguments: # Not including the generator arguments marked for being passed to simulation
+      kwargs:
+        settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
+        simulation_output_path: ${SimulationCore.output_path}
+        emissions_file_name: ${FileManager.emissions_file}
+        seed: ${Metadata.random_seed}
+        veh_distribution_file: ${FileManager.veh_distribution_file}
+
+FileManager:
+  veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
+  emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
+  tripinfo_file: ${Metadata.cwd}/__temp__tripinfo.out.xml
+  fcd_file: ${Metadata.cwd}/__temp__fcd.out.xml
+  e3_file: ${Metadata.cwd}/__temp__e3.out.xml

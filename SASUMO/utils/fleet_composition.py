@@ -52,6 +52,19 @@ def _dist_line_parser(line: str) -> VehAttribute:
     return VehAttribute(**params)
 
 
+def _handle_existing_vehdist(output_file_name) -> minidom.Document:
+    """
+    Handles the existing vehicle distribution file
+    """
+    if os.path.exists(output_file_name):
+        # have to parse the existing file, and set the old distribution as a child of the new document
+        xml_dom = minidom.parse(output_file_name)
+        doc = minidom.Document()
+        vtype_dist_node = xml_dom.getElementsByTagName("vTypeDistribution")
+        return doc, vtype_dist_node
+    else:
+        return minidom.Document(), []
+
 def create_veh_distributions(
     args: Iterable[DictConfig],
     output_file_name: os.PathLike,
@@ -62,7 +75,7 @@ def create_veh_distributions(
     """
     Creates a vehicle distribution file representing a
     """
-    xml_dom = minidom.Document()
+    xml_dom, type_nodes = _handle_existing_vehdist(output_file_name)
 
     # create the vehicle distribution
     vtype_dist_node = xml_dom.createElement("vTypeDistribution")
@@ -115,9 +128,10 @@ def create_veh_distributions(
             _apply_device_params(
                 device[0], device[1], device[2], vtype_dist_node, xml_dom
             )
-
+    
+    type_nodes.append(vtype_dist_node)
     # write the file to XML
-    write_additional_minidom(xml_dom, vtype_dist_node, output_file_name)
+    write_additional_minidom(xml_dom, type_nodes, output_file_name)
 
 
 def _apply_device_params(
