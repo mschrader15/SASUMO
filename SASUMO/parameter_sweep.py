@@ -1,6 +1,7 @@
 # from SASUMO.SASUMO.functions.function import
 import os
 from itertools import product
+import time
 
 import numpy as np
 # external imports
@@ -49,7 +50,7 @@ class ParameterSweep(SASUMO):
         return sobol_first_order(
             self._problem,
             int(self._settings.get("N")),
-            c.SEED
+            int(time.time())
         )
 
 

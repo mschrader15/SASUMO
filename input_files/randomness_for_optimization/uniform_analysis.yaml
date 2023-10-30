@@ -1,0 +1,218 @@
+Metadata:
+  # The name will also show up as the main folder for simulation 
+  name: InputSequenceGeneration
+  author: mcschrader@crimson.ua.edu
+  output: ${oc.env:SENSITIVITY_ANALYSIS_OUTPUT}/${Metadata.name}/${datetime:now}
+  run_id: ???
+  cwd: ${.output}/${.run_id}
+  simulation_root: ${oc.env:AIRPORT_HARPER_SUMO}
+  random_seed: ???
+  mode: ParameterSweep
+
+ParameterSweep:
+  parallel_trials: 64 
+  # N is the number of runs at each point in the sweep (for randomness).
+  # If mode is saltelli, N is the number of samples
+  "N": 32
+  preprocessing: None
+  mode: saltelli
+  ManagerFunction: 
+    module: functions.RemoteEmissionsSUMOFunc
+    arguments:
+  
+  Variables: 
+    fleetComposition:
+      variable_name: fleet_composition
+      group: ""
+      val: ???
+      sumo_dist:
+        type: uniform
+        params:
+          lb: 0.05
+          ub: 0.13
+
+    Tau:
+      variable_name: tau
+      group: car_following_parameter
+      val: ???
+      gen_function: saltelli.sample
+      sobol_dist_params:
+        lb: 0.71 # lb + largest Stddev of the distribution
+        ub: 2
+      sumo_dist:
+        type: normal
+        params:
+          width: 0.4 # midpoint in the considered range
+          lb: 0.2 # can't be lower than action step
+          ub: 2.5 # any higher and it leads to weird behavior
+        
+    Accel:
+      variable_name: accel
+      group: car_following_parameter
+      val: ???
+      gen_function: saltelli.sample
+      sobol_dist_params:
+        lb: 0.8 # lb + largest Stddev of the distribution, except largest std dev is big in observed data, so + 2x smallest here
+        ub: 2.6
+      sumo_dist:
+        type: lognormal
+        params:
+          width: 0.25
+          lb: 0.5
+          ub: 6
+      
+    Decel:
+      variable_name: decel
+      group: car_following_parameter
+      val: ???
+      gen_function: saltelli.sample
+      sobol_dist: unif
+      sobol_dist_params:
+        lb: 0.8
+        ub: 4.5 # this is SUMO's default
+      sumo_dist:
+        type: lognormal
+        params:
+          width: 1.3
+          lb: 0.2
+          ub: 6 
+
+
+  Generators:
+    - function: create_veh_distribution
+      output_name: veh_distribution_file
+      arguments:
+        args:
+          - variable_parameters: ${group:car_following_parameter}
+            fleet_composition: 1 - ${ParameterSweep.Variables.fleetComposition.val}
+            vehicle_name: car
+            distribution_parameters: |
+              length;uniform(4,6)
+              vClass;passenger
+              carFollowModel;IDM
+              emissionClass;PHEMlight/PC_G_EU4
+              actionStepLength; 0.2
+              # accel; uniform(0.80, 2.6); [0.5, 6]
+              # decel; uniform(0.80, 4.5); [0.2, 8]
+              minGap; normal(2.629724, 0.489382); [1.745753, 3.362827]
+              # tau; uniform(0.71, 2); [0.2, 2.5]
+              speedFactor; normal(1.1, 0.2); [0.7, 1.3]
+              lcCooperative; normal(1, 0.2)
+              jmTimegapMinor;uniform(3, 6)
+              lcKeepRight;uniform(0.3, 0.7)
+              lcOvertakeRight;uniform(0.0, 0.1)
+              # impatience;uniform(0.0, 0.1)
+          - variable_parameters: []
+            fleet_composition: ${ParameterSweep.Variables.fleetComposition.val}
+            vehicle_name: truck
+            distribution_parameters: |
+              # decel; normal(2.225, 1.849); [1, 8]
+              minGap; uniform(1.50, 3.5); [0.5, 5]
+              carFollowModel;IDM
+              length;uniform(19,23)
+              vClass;trailer
+              emissionClass;PHEMlight/HDV_TT_D_EU6
+              actionStepLength;0.2
+              jmTimegapMinor;6.5
+              lcPushy;uniform(0, 0.2)
+              accel; normal(1, 0.1); [0.5, 6]
+              decel; uniform(2, 0.1); [0.2, 8]
+              minGap; uniform(1.50, 3.5); [0.5, 5]
+              tau; normal(1.2, 0.39); [0.5, 2.5]
+              speedFactor; uniform(0.85, 1.1)
+              # lcKeepRight;uniform(0, 1)
+        kwargs:
+          output_file_name: ${FileManager.veh_distribution_file}
+          distribution_size: 10000
+          distribution_name: vehDist
+
+    - function: create_veh_distribution
+      output_name: veh_distribution_file
+      arguments:
+        args:
+          - variable_parameters: ${group:car_following_parameter}
+            fleet_composition: 1
+            vehicle_name: justCar
+            distribution_parameters: ${ParameterSweep.Generators[0].arguments.args[0].distribution_parameters}
+        kwargs:
+          output_file_name: ${FileManager.veh_distribution_file}
+          distribution_size: 10000
+          distribution_name: noTruckDist
+
+  Output:
+    module: functions.output.TotalEmissionsHandler
+    arguments:
+      kwargs:
+        emissions_xml: ${FileManager.emissions_file}
+        output_time_filter_lower: 3600
+        output_time_filter_upper: 10800
+        diesel_filter: "lambda x: 'D' in x"
+        gasoline_filter: "lambda x: 'G' in x"
+        x_filter: "lambda x: 630 <= x <= 1900"
+        sim_step: 0.1
+        save_output: True
+
+  PostProcessing:
+    - module: tools.output_tools.USDOTCalibration
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          settings: ${Metadata.cwd}/simulation_params.json
+          historical_data: ${Metadata.simulation_root}/data-analysis/feb_2020/detector_average_table_600S.pkl
+          save_path: ${Metadata.cwd}/calibration_results.json
+
+    - module: functions.simulation_metrics.SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          trip_info_file: ${FileManager.tripinfo_file}
+          output_file_path: ${Metadata.cwd}/simulation_metrics.json
+          warmup_time: 3600
+          route_begin_ends:
+            EB: ["834845345#1", "gneE14"]
+            WB: ["115872656#4", "115872656#13.8"]
+          diesel_filter: "lambda x: 'truck' in x"
+    
+    - module: functions.per_phase_delay.E3SimulationMetrics
+      path: ${Metadata.simulation_root}
+      arguments:
+        kwargs:
+          e3_output_file: ${FileManager.e3_file}
+          output_file_path: ${Metadata.cwd}/per_phase_delay.json
+          warmup_time: 3600
+
+    # - module: functions.free_flow_speed.FreeFlowSpeed
+    #   path: ${Metadata.simulation_root}
+    #   arguments:
+    #     kwargs:
+    #       radar_shape_file: ${Metadata.simulation_root}/sumo-xml/detectors/radar.polygon.add.xml
+    #       fcd_output_file: ${FileManager.fcd_file}
+    #       output_file: ${Metadata.cwd}/speed_analysis.json
+    #       start_time: "2020-02-24T05:00:00"  # why do I need this?
+
+SimulationCore:
+  preprocessing: None
+  output_path: ${Metadata.cwd}
+
+  SimulationFunction:
+    module: runners.sasumo.NoTraciSimulationSASUMO
+    path: ${Metadata.simulation_root}
+    arguments: # Not including the generator arguments marked for being passed to simulation
+      kwargs:
+        settings: ${Metadata.simulation_root}/sim-settings/sasumo/02_24_20-Coordinated.json
+        simulation_output_path: ${SimulationCore.output_path}
+        emissions_file_name: ${FileManager.emissions_file}
+        seed: ${Metadata.random_seed}
+        veh_distribution_file: ${FileManager.veh_distribution_file}
+
+FileManager:
+  veh_distribution_file: ${Metadata.cwd}/__temp__vehDist.in.xml
+  emissions_file: ${Metadata.cwd}/__temp__emissions.out.xml
+  tripinfo_file: ${Metadata.cwd}/__temp__tripinfo.out.xml
+  fcd_file: ${Metadata.cwd}/__temp__fcd.out.xml
+  e3_file: ${Metadata.cwd}/__temp__e3.out.xml
+
+
+
+
+
