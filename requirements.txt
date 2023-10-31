@@ -1,4 +1,4 @@
-git+https://github.com/mschrader15/SALib.git@main
+SALib
 modin
 ray[default]
 numba
